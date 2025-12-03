@@ -1,4 +1,4 @@
-# Contributing to Soceng Lab
+# Contributing to SocengLab
 
 Thank you for your interest in contributing! We welcome YAML-based scenarios and quizzes that help improve security awareness training.
 
