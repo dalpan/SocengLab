@@ -63,7 +63,7 @@ make seed
 | ----------------------------------- | ------------------------------------------------ |
 | `make help`                         | Show all available commands                      |
 | **Setup & Installation**            |                                                  |
-| `make install`                      | Install backend + frontend dependencies          |
+| `make install`                      | Install backend and frontend dependencies        |
 | `make build`                        | Build all Docker images                          |
 | `make up`                           | Start all services (frontend, backend, database) |
 | `make down`                         | Stop all running services                        |
@@ -78,7 +78,7 @@ make seed
 | `make drop`                         | Remove challenges & quizzes from database        |
 | `make db-shell`                     | Open MongoDB shell                               |
 | **Maintenance**                     |                                                  |
-| `make clean`                        | Remove containers + volumes                      |
+| `make clean`                        | Remove containers and volumes                    |
 | `make clean-all`                    | Remove everything including images               |
 | **YAML Validation**                 |                                                  |
 | `make validate-yaml FILE=path.yaml` | Validate a single YAML file                      |
