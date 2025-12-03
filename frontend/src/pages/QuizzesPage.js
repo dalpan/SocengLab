@@ -117,12 +117,16 @@ export default function QuizzesPage() {
           <div className="space-y-8">
             <div className="flex items-start justify-between">
               <div>
-                <h1 className="text-4xl font-bold mb-2">{t('scenarios.title')}</h1>
-                <p className="text-muted-foreground font-mono">Test your social engineering awareness</p>
+                <h1 className="text-4xl font-bold mb-2">{t('quizzes.title')}</h1>
+                <p className="text-muted-foreground mb-4">
+                  {t('quizzes.page_description')}
+                </p>
               </div>
-              <Badge variant="secondary" className="text-sm font-mono tracking-wider px-3 py-1">
-                Total: {quizzes.length}
-              </Badge>
+          <div className="flex space-x-3">
+             <Badge variant="secondary" className="text-sm font-mono tracking-wider px-3 py-1">
+              Quiz Total: {quizzes.length}
+            </Badge>
+          </div>
             </div>
       
       {/* --- PENCARIAN & FILTER --- */}

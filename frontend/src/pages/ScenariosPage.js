@@ -140,10 +140,7 @@ export default function ScenariosPage() {
           {/* Tambahkan Badge Statistik */}
           <div className="flex space-x-3">
              <Badge variant="secondary" className="text-sm font-mono tracking-wider px-3 py-1">
-              Total Skenario: {challenges.length}
-            </Badge>
-            <Badge variant="secondary" className="text-sm font-mono tracking-wider px-3 py-1">
-              Total Node: {totalNodes}
+              Scenario Total: {challenges.length}
             </Badge>
           </div>
         </div>

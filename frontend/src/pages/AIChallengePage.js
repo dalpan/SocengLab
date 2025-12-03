@@ -969,7 +969,7 @@ CRITICAL REQUIREMENTS:
     return (
       <div className="max-w-4xl mx-auto p-6">
         {/* Score Card */}
-        <Card className="mb-6 p-8 text-center bg-gradient-to-r from-blue-50 to-purple-50">
+        <Card className="mb-6 p-8 text-center bg-gray from-blue-50 to-purple-50">
           <Award className="w-16 h-16 mx-auto mb-4 text-yellow-500" />
           <h2 className="text-4xl font-bold mb-2">{finalScore}%</h2>
           <p className="text-xl text-gray-600 mb-6">
