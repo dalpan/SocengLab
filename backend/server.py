@@ -370,7 +370,8 @@ async def generate_pretext(request: Dict[str, Any], current_user: User = Depends
         
         # Create messages
         # Put context to system message
-        system_message = SystemMessage(content="You are a social engineering pretext generator. Generate realistic, ethically-sound pretexts for security awareness training. Always mark outputs as training material.\n\nContext: "    + context + "\n\n")
+        context_str = json.dumps(context, indent=2) if isinstance(context, dict) else str(context)
+        system_message = SystemMessage(content="You are a social engineering pretext generator. Generate realistic, ethically-sound pretexts for security awareness training. Always mark outputs as training material.\n\nContext: " + context_str + "\n\n")
         user_message = HumanMessage(content=prompt)
         
         # Get response from LLM
