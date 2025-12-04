@@ -7,8 +7,8 @@ import { Card } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { toast } from 'sonner';
-import { 
-  Zap, Loader2, AlertTriangle, CheckCircle2, XCircle, Award, 
+import {
+  Zap, Loader2, AlertTriangle, CheckCircle2, XCircle, Award,
   Eye, EyeOff, Flag, MessageSquare, AlertCircle, BookOpen,
   ChevronLeft, ChevronRight, RotateCcw, Download
 } from 'lucide-react';
@@ -24,13 +24,14 @@ export default function AIChallengePage() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
-  
+
   // Challenge Configuration
   const [selectedCategory, setSelectedCategory] = useState('phishing');
   const [selectedChallengeType, setSelectedChallengeType] = useState('comprehensive');
   const [numQuestions, setNumQuestions] = useState(10);
   const [difficulty, setDifficulty] = useState('medium');
-  
+  const [language, setLanguage] = useState('indonesian');
+
   // Challenge Data & Progress
   const [generatedChallenge, setGeneratedChallenge] = useState(null);
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
@@ -40,65 +41,65 @@ export default function AIChallengePage() {
   const [finalScore, setFinalScore] = useState(0);
   const [showDetailedExplanation, setShowDetailedExplanation] = useState({});
 
-// Challenge Type Configuration
-const challengeTypes = {
-  comprehensive: {
-    label: 'Comprehensive Challenge',
-    icon: '📋',
-    description: 'Multi-format challenge with various question types',
-    formats: ['multiple_choice', 'scenario_analysis', 'red_flag_identification', 'email_analysis'],
-    instructions: [
-      'Read each question carefully',
-      'Apply logic and knowledge of social engineering tactics',
-      'Each question may have a different format',
-      'There is no time limit for each question',
-      'You can return to previous questions',
-      'Detailed explanations are available after submitting your answers'
-    ]
-  },
-  email_analysis: {
-    label: 'Email Analysis Challenge',
-    icon: '📧',
-    description: 'Analyze phishing emails and identify red flags',
-    formats: ['email_full_analysis', 'header_analysis'],
-    instructions: [
-      'Analyze every provided email thoroughly',
-      'Identify the social engineering tactics used',
-      'Pay attention to the sender, subject line, and body content',
-      'Look for authentication signs (SPF, DKIM, DMARC)',
-      'Document every red flag you find',
-      'Provide recommendations for improvement for each email'
-    ]
-  },
-  interactive: {
-    label: 'Interactive Conversation',
-    icon: '💬',
-    description: 'Real-time conversation simulation with an attacker',
-    formats: ['conversation', 'reactive_scenario'],
-    instructions: [
-      'Interact with an AI acting as a social engineer',
-      'Respond naturally using the available options',
-      'Your choices will affect the flow of the conversation',
-      'The AI will adapt based on your choices',
-      'Goal: Avoid manipulation and maintain security awareness',
-      'Each interaction is scored for susceptibility level'
-    ]
-  },
-  scenario: {
-    label: 'Real-World Scenarios',
-    icon: '🎭',
-    description: 'Real-world scenarios with multiple decision points',
-    formats: ['scenario_branching', 'consequence_analysis'],
-    instructions: [
-      'Read the scenario completely',
-      'Consider all aspects: context, techniques, warning signs',
-      'Choose the most appropriate action for the situation',
-      'Understand the consequences of each choice',
-      'Some decisions may have different outcomes',
-      'Learn from suboptimal results'
-    ]
-  }
-};
+  // Challenge Type Configuration
+  const challengeTypes = {
+    comprehensive: {
+      label: 'Comprehensive Challenge',
+      icon: '📋',
+      description: 'Multi-format challenge with various question types',
+      formats: ['multiple_choice', 'scenario_analysis', 'red_flag_identification', 'email_analysis'],
+      instructions: [
+        'Read each question carefully',
+        'Apply logic and knowledge of social engineering tactics',
+        'Each question may have a different format',
+        'There is no time limit for each question',
+        'You can return to previous questions',
+        'Detailed explanations are available after submitting your answers'
+      ]
+    },
+    email_analysis: {
+      label: 'Email Analysis Challenge',
+      icon: '📧',
+      description: 'Analyze phishing emails and identify red flags',
+      formats: ['email_full_analysis', 'header_analysis'],
+      instructions: [
+        'Analyze every provided email thoroughly',
+        'Identify the social engineering tactics used',
+        'Pay attention to the sender, subject line, and body content',
+        'Look for authentication signs (SPF, DKIM, DMARC)',
+        'Document every red flag you find',
+        'Provide recommendations for improvement for each email'
+      ]
+    },
+    interactive: {
+      label: 'Interactive Conversation',
+      icon: '💬',
+      description: 'Real-time conversation simulation with an attacker',
+      formats: ['conversation', 'reactive_scenario'],
+      instructions: [
+        'Interact with an AI acting as a social engineer',
+        'Respond naturally using the available options',
+        'Your choices will affect the flow of the conversation',
+        'The AI will adapt based on your choices',
+        'Goal: Avoid manipulation and maintain security awareness',
+        'Each interaction is scored for susceptibility level'
+      ]
+    },
+    scenario: {
+      label: 'Real-World Scenarios',
+      icon: '🎭',
+      description: 'Real-world scenarios with multiple decision points',
+      formats: ['scenario_branching', 'consequence_analysis'],
+      instructions: [
+        'Read the scenario completely',
+        'Consider all aspects: context, techniques, warning signs',
+        'Choose the most appropriate action for the situation',
+        'Understand the consequences of each choice',
+        'Some decisions may have different outcomes',
+        'Learn from suboptimal results'
+      ]
+    }
+  };
 
   useEffect(() => {
     checkLLMConfig();
@@ -139,7 +140,7 @@ const challengeTypes = {
     try {
       const token = localStorage.getItem('soceng_token');
       const challengeTypeConfig = challengeTypes[selectedChallengeType];
-      
+
       // Build comprehensive prompt based on challenge type
       let prompt = buildPrompt(selectedChallengeType, challengeTypeConfig);
 
@@ -152,7 +153,7 @@ const challengeTypes = {
             challenge_type: selectedChallengeType,
             num_questions: numQuestions,
             difficulty: difficulty,
-            language: 'id',
+            language: language,
             formats: challengeTypeConfig.formats
           }
         },
@@ -368,19 +369,19 @@ CRITICAL REQUIREMENTS:
   const parseAndValidateChallenge = (responseText, type) => {
     try {
       let jsonText = responseText;
-      
+
       // Clean markdown and extract JSON
       jsonText = jsonText.replace(/\[TRAINING\]\s*/gi, '').replace(/\[TRAINING MATERIAL\]\s*/gi, '');
       const codeBlockMatch = jsonText.match(/```(?:json)?\s*([\s\S]*?)```/);
       if (codeBlockMatch) {
         jsonText = codeBlockMatch[1].trim();
       }
-      
+
       const startMatch = jsonText.search(/[\{\[]/);
       if (startMatch !== -1) {
         jsonText = jsonText.substring(startMatch);
       }
-      
+
       const endMatch = jsonText.search(/[\}\]][^\}\]]*$/);
       if (endMatch !== -1) {
         jsonText = jsonText.substring(0, endMatch + 1);
@@ -429,17 +430,17 @@ CRITICAL REQUIREMENTS:
     const question = generatedChallenge.questions.find(q => q.id === questionId);
     if (!question) return;
 
-    const isCorrect = userAnswer === question.correct_answer || 
-                     (Array.isArray(question.correct_answer) && 
-                      question.correct_answer.includes(userAnswer));
+    const isCorrect = userAnswer === question.correct_answer ||
+      (Array.isArray(question.correct_answer) &&
+        question.correct_answer.includes(userAnswer));
 
     setQuestionFeedback({
       ...questionFeedback,
       [questionId]: {
         isCorrect,
         userAnswer,
-        feedback: isCorrect 
-          ? '✅ Jawaban yang tepat!' 
+        feedback: isCorrect
+          ? '✅ Jawaban yang tepat!'
           : '❌ Jawaban tidak sesuai, perhatikan penjelasan di bawah.'
       }
     });
@@ -470,8 +471,8 @@ CRITICAL REQUIREMENTS:
     let correctCount = 0;
     generatedChallenge.questions.forEach(q => {
       const userAnswer = userAnswers[q.id];
-      if (userAnswer && (userAnswer === q.correct_answer || 
-          (Array.isArray(q.correct_answer) && q.correct_answer.includes(userAnswer)))) {
+      if (userAnswer && (userAnswer === q.correct_answer ||
+        (Array.isArray(q.correct_answer) && q.correct_answer.includes(userAnswer)))) {
         correctCount++;
       }
     });
@@ -497,10 +498,11 @@ CRITICAL REQUIREMENTS:
     setSaving(true);
     try {
       const token = localStorage.getItem('soceng_token');
-      
+
       // Create a simulation record for history
       const simulationData = {
-        type: 'ai_challenge',
+        simulation_type: 'ai_challenge',
+        type: 'ai_challenge', // For backwards compatibility
         challenge_type: selectedChallengeType,
         category: selectedCategory,
         difficulty: difficulty,
@@ -599,7 +601,7 @@ CRITICAL REQUIREMENTS:
           <div className="lg:col-span-1">
             <Card className="p-6 sticky top-6">
               <h3 className="text-lg font-semibold mb-4">Configure Challenge</h3>
-              
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">Challenge Type</label>
@@ -649,6 +651,19 @@ CRITICAL REQUIREMENTS:
                 </div>
 
                 <div>
+                  <label className="block text-sm font-medium mb-2">Language</label>
+                  <Select value={language} onValueChange={setLanguage}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="indonesian">🇮🇩 Indonesian</SelectItem>
+                      <SelectItem value="english">🇬🇧 English</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
                   <label className="block text-sm font-medium mb-2">
                     Number of Questions: {numQuestions}
                   </label>
@@ -662,8 +677,8 @@ CRITICAL REQUIREMENTS:
                   />
                 </div>
 
-                <Button 
-                  onClick={generateChallenge} 
+                <Button
+                  onClick={generateChallenge}
                   disabled={generating}
                   className="w-full"
                 >
@@ -751,7 +766,7 @@ CRITICAL REQUIREMENTS:
             </div>
           </div>
           <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
-            <div 
+            <div
               className="bg-blue-600 h-2 rounded-full transition-all"
               style={{ width: `${((currentQuestionIdx + 1) / generatedChallenge.questions.length) * 100}%` }}
             />
@@ -821,11 +836,10 @@ CRITICAL REQUIREMENTS:
                 <button
                   key={idx}
                   onClick={() => handleAnswerSelect(question.id, option.text || option)}
-                  className={`w-full p-3 rounded-lg border-2 transition-all text-left ${
-                    userAnswers[question.id] === (option.text || option)
-                      ? 'border-blue-500 bg-blue'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
+                  className={`w-full p-3 rounded-lg border-2 transition-all text-left ${userAnswers[question.id] === (option.text || option)
+                    ? 'border-blue-500 bg-blue'
+                    : 'border-gray-200 hover:border-gray-300'
+                    }`}
                 >
                   <span className="font-semibold">{String.fromCharCode(65 + idx)}.</span> {option.text || option}
                 </button>
@@ -894,7 +908,7 @@ CRITICAL REQUIREMENTS:
             </span>
             {showDetailedExplanation[question.id] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
-          
+
           {showDetailedExplanation[question.id] && (
             <div className="mt-4 pt-4 border-t border-purple-200 text-sm space-y-3">
               <div>
@@ -975,7 +989,7 @@ CRITICAL REQUIREMENTS:
           <p className="text-xl text-gray-600 mb-6">
             You answered {correctAnswers} out of {totalQuestions} questions correctly
           </p>
-          
+
           {finalScore >= 80 && (
             <Badge className="mb-4 text-lg py-2">🏆 Outstanding Performance!</Badge>
           )}

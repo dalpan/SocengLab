@@ -95,13 +95,23 @@ class Simulation(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     challenge_id: Optional[str] = None
     quiz_id: Optional[str] = None
-    simulation_type: str  # challenge, quiz
+    simulation_type: str  # challenge, quiz, ai_challenge
     status: str  # running, completed, paused
     events: List[Dict[str, Any]] = Field(default_factory=list)
     score: Optional[float] = None
     started_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     completed_at: Optional[datetime] = None
     participant_name: Optional[str] = None
+    
+    # AI Challenge specific fields
+    type: Optional[str] = None  # For backwards compatibility, same as simulation_type
+    challenge_type: Optional[str] = None  # comprehensive, email_analysis, interactive, scenario
+    category: Optional[str] = None  # phishing, pretexting, baiting, etc.
+    difficulty: Optional[str] = None  # beginner, intermediate, advanced
+    total_questions: Optional[int] = None
+    correct_answers: Optional[int] = None
+    answers: Optional[Dict[str, Any]] = None
+    challenge_data: Optional[Dict[str, Any]] = None
 
 class LLMConfig(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -258,6 +268,15 @@ async def update_simulation(simulation_id: str, updates: Dict[str, Any], current
     
     return {"message": "Simulation updated"}
 
+@api_router.delete("/simulations/{simulation_id}")
+async def delete_simulation(simulation_id: str, current_user: User = Depends(get_current_user)):
+    result = await db.simulations.delete_one({"id": simulation_id})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Simulation not found")
+    
+    return {"message": "Simulation deleted successfully"}
+
 # LLM Config Routes
 @api_router.get("/llm/config")
 async def get_llm_configs(current_user: User = Depends(get_current_user)):
@@ -350,7 +369,8 @@ async def generate_pretext(request: Dict[str, Any], current_user: User = Depends
             raise HTTPException(status_code=400, detail=f"Unsupported provider: {provider}")
         
         # Create messages
-        system_message = SystemMessage(content="You are a social engineering pretext generator. Generate realistic, ethically-sound pretexts for security awareness training. Always mark outputs as training material.")
+        # Put context to system message
+        system_message = SystemMessage(content="You are a social engineering pretext generator. Generate realistic, ethically-sound pretexts for security awareness training. Always mark outputs as training material.\n\nContext: "    + context + "\n\n")
         user_message = HumanMessage(content=prompt)
         
         # Get response from LLM

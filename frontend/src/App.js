@@ -30,13 +30,13 @@ function App() {
     if (token) {
       setIsAuthenticated(true);
     }
-    
+
     // Check first run status - skip if already has token (for testing/production)
     const firstRun = localStorage.getItem('soceng_first_run');
     if (!firstRun && !token) {
       setFirstRunCompleted(false);
     }
-    
+
     setIsLoading(false);
   }, []);
 

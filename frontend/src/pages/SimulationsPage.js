@@ -16,8 +16,13 @@ export default function SimulationsPage() {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [filterType, setFilterType] = useState('all'); // all, simulation, quiz, scenario, ai_challenge
+  const [filterCategory, setFilterCategory] = useState('all');
+  const [categories, setCategories] = useState([]);
   const [selectedSimulation, setSelectedSimulation] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [showDeleted, setShowDeleted] = useState(false);
+  const [challenges, setChallenges] = useState({});
+  const [quizzes, setQuizzes] = useState({});
 
   const itemsPerPage = 10;
 
@@ -43,13 +48,66 @@ export default function SimulationsPage() {
       });
 
       console.log('✅ Loaded simulations:', sorted);
-      setSimulations(sorted);
+
+      // Filter out deleted by default
+      const activeSimulations = showDeleted ? sorted : sorted.filter(s => s.status !== 'deleted');
+
+      setSimulations(activeSimulations);
+      extractCategories(activeSimulations);
+
+      // Fetch challenge and quiz details
+      await fetchRelatedDetails(activeSimulations, token);
     } catch (error) {
       console.error('Failed to load simulations', error);
       toast.error('Failed to load simulations');
       setSimulations([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchRelatedDetails = async (sims, token) => {
+    try {
+      const challengeIds = [...new Set(sims.filter(s => s.challenge_id).map(s => s.challenge_id))];
+      const quizIds = [...new Set(sims.filter(s => s.quiz_id).map(s => s.quiz_id))];
+
+      // Fetch challenges
+      const challengePromises = challengeIds.map(id =>
+        axios.get(`${API}/challenges/${id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }).catch(err => null)
+      );
+
+      // Fetch quizzes
+      const quizPromises = quizIds.map(id =>
+        axios.get(`${API}/quizzes/${id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }).catch(err => null)
+      );
+
+      const challengeResults = await Promise.all(challengePromises);
+      const quizResults = await Promise.all(quizPromises);
+
+      // Map challenges by ID
+      const challengeMap = {};
+      challengeResults.forEach((result, idx) => {
+        if (result?.data) {
+          challengeMap[challengeIds[idx]] = result.data;
+        }
+      });
+
+      // Map quizzes by ID
+      const quizMap = {};
+      quizResults.forEach((result, idx) => {
+        if (result?.data) {
+          quizMap[quizIds[idx]] = result.data;
+        }
+      });
+
+      setChallenges(challengeMap);
+      setQuizzes(quizMap);
+    } catch (error) {
+      console.error('Failed to fetch related details:', error);
     }
   };
 
@@ -78,11 +136,11 @@ export default function SimulationsPage() {
 
   const deleteSimulation = async (simulationId, e) => {
     e.stopPropagation();
-    
+
     if (window.confirm('Are you sure you want to delete this record?')) {
       try {
         const token = localStorage.getItem('soceng_token');
-        
+
         // Try multiple endpoint variations for DELETE
         try {
           await axios.delete(`${API}/simulations/${simulationId}`, {
@@ -126,8 +184,14 @@ export default function SimulationsPage() {
     return '📚';
   };
 
-  const getTypeIcon = (type) => {
-    switch(type) {
+  const getSimulationType = (simulation) => {
+    // Backend uses simulation_type as primary, type as secondary
+    return simulation?.simulation_type || simulation?.type || 'unknown';
+  };
+
+  const getTypeIcon = (simulation) => {
+    const type = typeof simulation === 'string' ? simulation : getSimulationType(simulation);
+    switch (type) {
       case 'ai_challenge':
         return '🤖';
       case 'simulation':
@@ -141,8 +205,9 @@ export default function SimulationsPage() {
     }
   };
 
-  const getTypeBadge = (type) => {
-    switch(type) {
+  const getTypeBadge = (simulation) => {
+    const type = typeof simulation === 'string' ? simulation : getSimulationType(simulation);
+    switch (type) {
       case 'ai_challenge':
         return 'AI Challenge';
       case 'simulation':
@@ -188,7 +253,35 @@ export default function SimulationsPage() {
     }
   };
 
+  const extractCategories = (data) => {
+    const uniqueCategories = [...new Set(
+      data
+        .filter(s => s.category)
+        .map(s => s.category)
+    )];
+    setCategories(uniqueCategories);
+  };
+
   const getTitle = (simulation) => {
+    const type = getSimulationType(simulation);
+
+    // Show AI challenge title from challenge_data if available
+    if (type === 'ai_challenge' && simulation.challenge_data?.challenge_title) {
+      return simulation.challenge_data.challenge_title;
+    }
+
+    // Show challenge title from fetched challenges
+    if (simulation.challenge_id && challenges[simulation.challenge_id]) {
+      const challenge = challenges[simulation.challenge_id];
+      return challenge.title || challenge.name || 'Scenario Challenge';
+    }
+
+    // Show quiz title from fetched quizzes
+    if (simulation.quiz_id && quizzes[simulation.quiz_id]) {
+      const quiz = quizzes[simulation.quiz_id];
+      return quiz.title || quiz.name || 'Quiz';
+    }
+
     if (simulation.challenge_type) {
       const types = {
         comprehensive: '📋 Comprehensive Challenge',
@@ -196,19 +289,26 @@ export default function SimulationsPage() {
         interactive: '💬 Interactive Conversation',
         scenario: '🎭 Real-World Scenarios'
       };
-      return types[simulation.challenge_type] || `${getTypeIcon(simulation.type)} Challenge`;
+      return types[simulation.challenge_type] || `${getTypeIcon(simulation)} Challenge`;
     }
 
     if (simulation.title) return simulation.title;
     if (simulation.name) return simulation.name;
 
-    return `${getTypeIcon(simulation.type)} ${getTypeBadge(simulation.type)}`;
+    return `${getTypeIcon(simulation)} ${getTypeBadge(simulation)}`;
   };
 
   // Filter simulations
   const filteredSimulations = simulations.filter(sim => {
-    if (filterType === 'all') return true;
-    return sim.type === filterType;
+    const simType = getSimulationType(sim);
+
+    // Filter by type
+    if (filterType !== 'all' && simType !== filterType) return false;
+
+    // Filter by category
+    if (filterCategory !== 'all' && sim.category !== filterCategory) return false;
+
+    return true;
   });
 
   const paginatedSimulations = filteredSimulations.slice(
@@ -221,10 +321,10 @@ export default function SimulationsPage() {
   // Calculate statistics
   const stats = {
     total: simulations.length,
-    avgScore: simulations.length > 0 
+    avgScore: simulations.length > 0
       ? Math.round(simulations.reduce((sum, s) => sum + (s.score || 0), 0) / simulations.length)
       : 0,
-    bestScore: simulations.length > 0 
+    bestScore: simulations.length > 0
       ? Math.max(...simulations.map(s => s.score || 0))
       : 0,
     challenges: simulations.filter(s => s.type === 'ai_challenge').length,
@@ -305,6 +405,7 @@ export default function SimulationsPage() {
 
       {/* Filter Controls */}
       <div className="flex flex-col md:flex-row gap-4 mb-6">
+        {/* Type Filter */}
         <div className="flex gap-2 flex-wrap">
           <Button
             variant={filterType === 'all' ? 'default' : 'outline'}
@@ -355,9 +456,52 @@ export default function SimulationsPage() {
             }}
             className="flex items-center gap-2"
           >
-            🎮 Simulations ({simulations.filter(s => s.type === 'simulation').length})
+            🎮 Simulations ({simulations.filter(s => getSimulationType(s) === 'simulation').length})
           </Button>
         </div>
+
+        {/* Show Deleted Toggle */}
+        <div className="flex items-center gap-2">
+          <Button
+            variant={showDeleted ? 'default' : 'outline'}
+            onClick={() => {
+              setShowDeleted(!showDeleted);
+              loadSimulations();
+            }}
+            size="sm"
+          >
+            {showDeleted ? '👁️ Hide Deleted' : '🗁️ Show Deleted'}
+          </Button>
+        </div>
+
+        {/* Category Filter */}
+        {categories.length > 0 && (
+          <div className="flex gap-2 flex-wrap">
+            <Button
+              variant={filterCategory === 'all' ? 'default' : 'outline'}
+              onClick={() => {
+                setFilterCategory('all');
+                setCurrentPage(1);
+              }}
+              size="sm"
+            >
+              All Categories
+            </Button>
+            {categories.map((cat) => (
+              <Button
+                key={cat}
+                variant={filterCategory === cat ? 'default' : 'outline'}
+                onClick={() => {
+                  setFilterCategory(cat);
+                  setCurrentPage(1);
+                }}
+                size="sm"
+              >
+                {getCategoryLabel(cat)}
+              </Button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Main Content */}
@@ -476,8 +620,57 @@ export default function SimulationsPage() {
                   {/* Expanded Details */}
                   {isExpanded && (
                     <div className="mt-6 pt-6 border-t border-gray-200 space-y-4">
+                      {/* Challenge/Scenario Details */}
+                      {getSimulationType(simulation) === 'challenge' && simulation.events && simulation.events.length > 0 && (
+                        <div>
+                          <h4 className="font-semibold mb-3 text-gray-200">Decision Flow ({simulation.events.length} decisions)</h4>
+                          <div className="space-y-3 max-h-96 overflow-y-auto">
+                            {simulation.events.map((event, idx) => (
+                              <div
+                                key={idx}
+                                className="p-4 rounded-lg bg-gray-50 border-l-4 border-blue-500"
+                              >
+                                <div className="flex items-start justify-between mb-2">
+                                  <div className="flex-1">
+                                    <p className="font-semibold text-gray-800">
+                                      {idx + 1}. {event.action}
+                                    </p>
+                                    {event.node_id && (
+                                      <p className="text-xs text-gray-500 mt-1">
+                                        Node: {event.node_id} → {event.next_node || 'end'}
+                                      </p>
+                                    )}
+                                  </div>
+                                  {event.score_impact !== undefined && (
+                                    <span
+                                      className={`text-sm font-bold px-3 py-1 rounded-full whitespace-nowrap ml-3 ${event.score_impact > 0
+                                        ? 'bg-green-100 text-green-700'
+                                        : event.score_impact < 0
+                                          ? 'bg-red-100 text-red-700'
+                                          : 'bg-gray-100 text-gray-700'
+                                        }`}
+                                    >
+                                      {event.score_impact > 0 ? '+' : ''}{event.score_impact}
+                                    </span>
+                                  )}
+                                </div>
+                                {event.timestamp && (
+                                  <p className="text-xs text-gray-500">
+                                    {new Date(event.timestamp).toLocaleString('en-US', {
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                      second: '2-digit'
+                                    })}
+                                  </p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       {/* AI Challenge Details */}
-                      {simulation.type === 'ai_challenge' && simulation.challenge_data && (
+                      {getSimulationType(simulation) === 'ai_challenge' && simulation.challenge_data && (
                         <div>
                           <h4 className="font-semibold mb-3 text-gray-200">Questions Summary</h4>
                           <div className="space-y-2 max-h-96 overflow-y-auto">
@@ -488,11 +681,10 @@ export default function SimulationsPage() {
                               return (
                                 <div
                                   key={q.id}
-                                  className={`p-3 rounded border-l-4 ${
-                                    isCorrect
-                                      ? 'bg-green-50 border-green-500'
-                                      : 'bg-red-50 border-red-500'
-                                  }`}
+                                  className={`p-3 rounded border-l-4 ${isCorrect
+                                    ? 'bg-green-50 border-green-500'
+                                    : 'bg-red-50 border-red-500'
+                                    }`}
                                 >
                                   <div className="flex items-start gap-2">
                                     <span className="font-semibold text-gray-700 min-w-[24px]">
@@ -526,7 +718,7 @@ export default function SimulationsPage() {
                       )}
 
                       {/* Quiz/Scenario Details */}
-                      {(simulation.type === 'quiz' || simulation.type === 'scenario') && simulation.questions && (
+                      {(getSimulationType(simulation) === 'quiz' || getSimulationType(simulation) === 'scenario') && simulation.questions && (
                         <div>
                           <h4 className="font-semibold mb-3 text-gray-200">Questions Summary ({simulation.questions.length})</h4>
                           <div className="space-y-2 max-h-96 overflow-y-auto">
@@ -540,7 +732,7 @@ export default function SimulationsPage() {
                       )}
 
                       {/* Simulation Events */}
-                      {simulation.type === 'simulation' && simulation.events && simulation.events.length > 0 && (
+                      {getSimulationType(simulation) === 'simulation' && simulation.events && simulation.events.length > 0 && (
                         <div>
                           <h4 className="font-semibold mb-3 text-gray-200">Event Timeline ({simulation.events.length} events)</h4>
                           <div className="space-y-2 max-h-96 overflow-y-auto">
@@ -558,11 +750,10 @@ export default function SimulationsPage() {
                                   </div>
                                   {event.score_impact !== undefined && (
                                     <span
-                                      className={`text-xs font-semibold px-2 py-1 rounded whitespace-nowrap ${
-                                        event.score_impact > 0
-                                          ? 'bg-red-100 text-red-700'
-                                          : 'bg-green-100 text-green-700'
-                                      }`}
+                                      className={`text-xs font-semibold px-2 py-1 rounded whitespace-nowrap ${event.score_impact > 0
+                                        ? 'bg-red-100 text-red-700'
+                                        : 'bg-green-100 text-green-700'
+                                        }`}
                                     >
                                       {event.score_impact > 0 ? '+' : ''}{event.score_impact}
                                     </span>
@@ -579,7 +770,7 @@ export default function SimulationsPage() {
                         <div>
                           <p className="text-sm text-gray-100 font-medium">Type</p>
                           <p className="font-semibold text-gray-200">
-                            {getTypeIcon(simulation.type)} {getTypeBadge(simulation.type)}
+                            {getTypeIcon(simulation)} {getTypeBadge(simulation)}
                           </p>
                         </div>
                         <div>

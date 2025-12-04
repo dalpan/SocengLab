@@ -43,16 +43,15 @@ export default function Layout({ children, onLogout }) {
             {navigation.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
-              
+
               return (
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`flex items-center space-x-3 px-4 py-3 rounded-md transition-colors font-mono text-sm ${
-                    isActive
-                      ? 'bg-primary/10 text-primary border border-primary/30'
-                      : 'text-muted-foreground hover:bg-muted/10 hover:text-foreground'
-                  }`}
+                  className={`flex items-center space-x-3 px-4 py-3 rounded-md transition-colors font-mono text-sm ${isActive
+                    ? 'bg-primary/10 text-primary border border-primary/30'
+                    : 'text-muted-foreground hover:bg-muted/10 hover:text-foreground'
+                    }`}
                   data-testid={`nav-${item.path.replace('/', '') || 'dashboard'}`}
                 >
                   <Icon className="w-5 h-5" />
