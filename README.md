@@ -29,13 +29,15 @@ By using this tool, you agree to use it ethically and legally. The developers as
 
 ## ✨ Features
 
+- **AI Challenge Generator**: Dynamic LLM-powered challenges with real-time AI evaluation and chatbot-style interaction
 - **Adaptive Challenge Engine**: Node-based branching scenarios with dynamic escalation
 - **Quiz Mode**: Multiple-choice assessments with instant feedback
-- **LLM Integration**: Optional pretext generation (OpenAI, Gemini, Claude, generic)
 - **Bilingual**: English and Indonesian (i18n ready)
 - **Offline-First**: Works without network by default
 - **Single User**: Seeded authentication, no registration
 - **Scoring Engine**: 0-100 susceptibility score with Cialdini category breakdown
+- **Similarity-Based Essay Scoring**: Dynamic evaluation of open-ended answers using Levenshtein distance algorithm
+
 
 ## 🚀 Quick Start
 
@@ -112,7 +114,27 @@ python bin/import_yaml.py data/sample/
 
 ## 🤝 Contributions
 
-### Add Challenge
+### Add AI Challenge (Online)
+
+Use the **AI Challenge Generator** interface:
+1. Go to **AI Challenge** page
+2. Select challenge type: Comprehensive, Email Analysis, Interactive, or Real-World Scenarios
+3. Configure:
+   - Category (Phishing, Pretexting, Baiting, Tailgating, Vishing, Spear Phishing)
+   - Difficulty (Beginner, Intermediate, Advanced)
+   - Language (Indonesian, English)
+   - Number of Questions (3-20)
+4. Click "Generate Challenge"
+5. Answer questions in chatbot-style interface with real-time AI evaluation
+6. Review detailed results with AI feedback and similarity scores
+
+**Features:**
+- Multiple question formats: Multiple Choice, Scenario Analysis, Red Flag Identification, Email Analysis
+- AI-powered real-time evaluation and adaptive question sequencing
+- Dynamic essay scoring based on semantic similarity (≥70% similarity = correct)
+- Instant feedback with learning insights for each answer
+
+### Add Custom Challenges (Offline)
 
 Make file `data/sample/your-challenge.yaml`:
 
