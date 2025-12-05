@@ -58,6 +58,29 @@ make seed
 # Backend: http://localhost:8001
 # Login: soceng / Cialdini@2025!
 ```
+### Obtaining an LLM API Key
+
+The **AI Challenge** feature requires an API key from the LLM provider you choose. Example providers and quick steps to obtain an API key:
+
+- Google AI Studio:
+  
+  ```bash
+  1. Open https://aistudio.google.com/api-keys
+  2. Sign in with your Google account
+  3. Create a new API key and copy its value
+  ```
+- OpenAI:
+  
+  ```bash
+  1. Open https://platform.openai.com/account/api-keys
+  2. Sign in, create a new API key, and copy it
+  ```
+  
+- Anthropic / Gemini / Other providers: follow the provider's documentation to create an API key
+
+After obtaining the API key, add it to the application via `Settings → LLM Configuration`
+
+**Security note:** do not commit API keys to public repositories. Store keys securely and restrict access where possible.
 
 ## 📋 Makefile Commands
 
