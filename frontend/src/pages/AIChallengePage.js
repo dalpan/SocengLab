@@ -788,6 +788,7 @@ NEXT: [Should they proceed? YES or NO]`;
         score: score,
         correct_answers: correctCount,
         answers: userAnswers,
+        evaluation_results: evaluationResults, // Include AI evaluation results
         challenge_data: generatedChallenge,
         completed_at: new Date().toISOString(),
         status: 'completed'
