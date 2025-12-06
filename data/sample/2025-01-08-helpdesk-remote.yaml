@@ -1,6 +1,6 @@
 type: challenge
 title: "Remote Desktop Support"
-description: "Helpdesk minta remote access. Authority + social proof combo."
+description: "Helpdesk request remote access. Authority + social proof combo."
 difficulty: hard
 cialdini_categories:
   - authority

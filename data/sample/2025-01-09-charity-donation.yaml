@@ -1,6 +1,6 @@
 type: challenge
 title: "Charity Donation Request"
-description: "Permintaan donasi untuk charity. Reciprocity + liking tactic."
+description: "Request for charity donations. Reciprocity + liking tactic."
 difficulty: easy
 cialdini_categories:
   - reciprocity

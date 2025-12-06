@@ -1,6 +1,6 @@
 type: challenge
 title: "Failed Package Delivery"
-description: "SMS tentang paket gagal dikirim. Urgency + reciprocity trap."
+description: "SMS about package delivery failure. Urgency + reciprocity trap."
 difficulty: easy
 cialdini_categories:
   - urgency

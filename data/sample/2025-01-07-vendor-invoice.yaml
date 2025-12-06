@@ -1,6 +1,6 @@
 type: challenge
 title: "Vendor Invoice Update"
-description: "Vendor meminta update payment details. Authority + urgency combo."
+description: "Vendor requested an update on payment details. A combination of authority and urgency."
 difficulty: hard
 cialdini_categories:
   - authority

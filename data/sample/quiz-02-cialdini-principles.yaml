@@ -1,6 +1,6 @@
 type: quiz
 title: "Cialdini's Influence Principles"
-description: "Uji pemahaman Anda tentang 6 prinsip influence Cialdini dalam konteks social engineering"
+description: "Test your understanding of Cialdini's 6 principles of influence in the context of social engineering"
 difficulty: medium
 cialdini_categories:
   - authority

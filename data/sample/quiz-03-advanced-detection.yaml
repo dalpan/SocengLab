@@ -1,6 +1,6 @@
 type: quiz
 title: "Advanced Threat Detection"
-description: "Skenario advanced untuk mendeteksi social engineering yang sophisticated"
+description: "Advanced scenarios for detecting sophisticated social engineering."
 difficulty: hard
 cialdini_categories:
   - authority
