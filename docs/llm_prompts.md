@@ -16,8 +16,8 @@ CRITICAL RULES:
 3. Never generate actual malicious payloads
 4. Focus on education, not exploitation
 5. Content will be reviewed before use
-
-Your outputs will be sanitized to remove real PII (emails, phones, SSNs).
+6. Avoid including real personal identifiable information (PII). If realistic examples are needed, synthesize or anonymize them.
+7. If you detect what appears to be real PII in the input or generated output, flag it and suggest non-identifying replacements.
 ```
 
 ## Pretext Generation Prompts
@@ -138,6 +138,30 @@ Requirements:
 Output personalized scenario maintaining original structure.
 ```
 
+## Answer Evaluation Prompt
+
+```
+You are evaluating a participant's answer to a social engineering training question.
+
+Context:
+- Question: {question_text}
+- Participant answer: {participant_answer}
+- Expected / model answer: {correct_answer_or_guidance}
+- Explanation: {explanation}
+
+Requirements:
+1. Provide a concise encouraging feedback sentence (2-3 sentences max).
+2. Provide one short insight or learning point.
+3. Decide whether the participant should proceed to the next question (YES/NO).
+4. If applicable, note approximate similarity/quality of the answer versus expected answer.
+
+Format response exactly as:
+FEEDBACK: [brief feedback]
+INSIGHT: [one learning point]
+NEXT: [YES or NO]
+```
+
+
 ## Safety & Sanitization Prompts
 
 ### PII Detection Prompt
@@ -156,6 +180,8 @@ Identify and flag:
 
 Suggest replacements that maintain realism without real PII.
 ```
+
+Note: the application no longer assumes automatic backend redaction of PII. Use this detection prompt to identify potential real PII and provide suggested replacements; the calling code may choose whether to apply replacements or surface flags for reviewer approval.
 
 ### Harmful Content Detection
 ```
@@ -228,11 +254,19 @@ Output as professional report suitable for leadership.
 - Scenario generation: 1500-2500 tokens
 - Reports: 2000-4000 tokens
 
-### Model Selection
-- **OpenAI GPT-4o**: General purpose, good balance
-- **GPT-5.1**: More sophisticated, better context
-- **Gemini 2.5 Flash**: Fast, cost-effective
-- **Claude Sonnet 4**: Excellent safety, nuanced
+-### Model Selection
+- Choose a model/provider that matches your safety, cost and latency requirements.
+- Test prompts across multiple providers and configurations; do not rely on this document to list specific model names.
+- For factual/verification tasks use lower temperature (0.1-0.5); for creative pretexts a higher temperature is acceptable.
+
+### Similarity & Essay Scoring
+- The frontend implementation uses a Levenshtein-based similarity function for open-ended / essay answers.
+- Use a similarity threshold of ~0.7 (70%) as a heuristic to mark an answer as 'correct' for scoring purposes; this threshold can be adjusted per training campaign.
+- When designing prompts that include an expected answer, include concise model answers or rubrics to improve evaluation quality.
+
+### JSON / Response Format Requirements
+- When requesting challenge generation, prefer explicit JSON-only responses (wrap in ```json blocks where supported) and ensure the LLM returns a single valid JSON object matching the schema used by the application.
+- For answer evaluation calls, return the compact FEEDBACK/INSIGHT/NEXT format (see "Answer Evaluation Prompt") so the frontend can parse and persist AI evaluation results for consistent scoring and history display.
 
 ## Example Conversations
 
@@ -264,13 +298,7 @@ Medium sophistication. Industry: Healthcare.
 
 ## Prompt Versioning
 
-All prompts are version-controlled and tagged:
-
-- **v1.0**: Initial release (Jan 2025)
-- **v1.1**: Added sanitization layer
-- **v1.2**: Improved personalization
-
-Track changes in `docs/prompt_changelog.md`.
+Track prompt changes and releases in `docs/prompt_changelog.md` (use that file for detailed version history).
 
 ## Contributing New Prompts
 
@@ -284,5 +312,5 @@ When adding prompts:
 ---
 
 **Maintained by**: Soceng Lab Team  
-**Last Updated**: January 2025  
+**Last Updated**: December 2025  
 **Next Review**: Quarterly
