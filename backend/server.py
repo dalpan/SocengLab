@@ -340,7 +340,8 @@ async def generate_pretext(request: Dict[str, Any], current_user: User = Depends
     model_map = {
         "openai": "gpt-4o",
         "gemini": "gemini-2.5-pro",
-        "claude": "claude-sonnet-4-20250514"
+        "claude": "claude-sonnet-4-20250514",
+        "openrouter": "google/gemini-2.0-flash-exp:free"
     }
     
     model_name = config.get('model_name') or model_map.get(provider, "gpt-4o")
@@ -363,6 +364,13 @@ async def generate_pretext(request: Dict[str, Any], current_user: User = Depends
             chat_model = ChatAnthropic(
                 api_key=config['api_key'],
                 model=model_name,
+                temperature=0.7
+            )
+        elif provider == "openrouter":
+            chat_model = ChatOpenAI(
+                api_key=config['api_key'],
+                model=model_name,
+                base_url="https://openrouter.ai/api/v1",
                 temperature=0.7
             )
         else:
