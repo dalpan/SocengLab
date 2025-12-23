@@ -153,7 +153,7 @@ export default function ScenariosPage() {
           <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
           <Input
             type="text"
-            placeholder="Cari berdasarkan judul atau deskripsi..."
+            placeholder="Search by title or description..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 font-mono"
