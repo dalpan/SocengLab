@@ -2,6 +2,9 @@
 
 # Soceng Lab - Adaptive Social Engineering Simulator
 
+### Human beings are the most exploited attack surface.
+<p>SocEngLab is a hands‑on, open‑source lab designed to explore that reality.</p>
+
 ![Version](https://img.shields.io/badge/Version-1.0.0-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Python](https://img.shields.io/badge/Python-3.11-blue)
@@ -15,7 +18,9 @@
 ---
 ## 🎯 About
 
-**SocEng Lab** is an open-source adaptive social engineering simulation platform that brings academic rigor to security awareness training. This AI-driven tool adapts attacks in real-time based on user responses like a "choose-your-own-adventure" experience powered by Cialdini's six principles of influence and threat actor playbooks. By mapping attack scenarios to Cialdini's principles and implementing persona-based adaptive branching, teams can measure and improve human resilience against social engineering at scale.
+**SocEngLab** is an interactive social engineering simulation platform focused on the human layer of security. Instead of exploiting software bugs, this lab models how attackers manipulate trust, authority, urgency, and emotion during real conversations.
+
+Unlike traditional phishing simulators or offensive toolkits, SocEngLab places participants in the role of the target, not the attacker. The goal is not to win, but to experience manipulation, recognize influence, and reflect on failure.
 
 **THIS TOOL IS FOR AUTHORIZED SECURITY TESTING AND TRAINING ONLY**
 
