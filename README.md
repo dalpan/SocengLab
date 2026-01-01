@@ -1,9 +1,8 @@
 <div align="center">
 
-# Soceng Lab - Adaptive Social Engineering Simulator
+# Soceng Lab - A Hands-on Lab for Experiencing Human Exploitation
 
 ### Human beings are the most exploited attack surface.
-<p>SocEngLab is a hands‑on, open‑source lab designed to explore that reality.</p>
 
 ![Version](https://img.shields.io/badge/Version-1.0.0-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
