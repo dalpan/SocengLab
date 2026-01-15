@@ -27,7 +27,7 @@ client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
 # Create the main app without a prefix
-app = FastAPI(title="Soceng Lab API")
+app = FastAPI(title="Pretexta API")
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
@@ -102,6 +102,7 @@ class Simulation(BaseModel):
     started_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     completed_at: Optional[datetime] = None
     participant_name: Optional[str] = None
+    title: Optional[str] = None # Added for log display
     
     # AI Challenge specific fields
     type: Optional[str] = None  # For backwards compatibility, same as simulation_type
@@ -168,7 +169,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 
 @api_router.get("/")
 async def root():
-    return {"message": "Soceng Lab API", "version": "1.0.0"}
+    return {"message": "Pretexta API", "version": "1.0.0"}
 
 # Auth Routes
 @api_router.post("/auth/login", response_model=LoginResponse)
@@ -338,66 +339,253 @@ async def generate_pretext(request: Dict[str, Any], current_user: User = Depends
     
     # Set model based on provider
     model_map = {
-        "openai": "gpt-4o",
-        "gemini": "gemini-2.5-pro",
-        "claude": "claude-sonnet-4-20250514",
-        "openrouter": "google/gemini-2.0-flash-exp:free"
+        "gemini": "gemini-1.5-flash", 
+        "claude": "claude-3-5-sonnet-20240620"
     }
     
-    model_name = config.get('model_name') or model_map.get(provider, "gpt-4o")
+    # Priority: Configured Model -> Provider Default -> Fallback
+    model_name = config.get('model_name') or model_map.get(provider)
+    if not model_name: 
+        model_name = "gemini-1.5-flash"
+
     
     # Create the appropriate chat model based on provider
     try:
-        if provider == "openai":
-            chat_model = ChatOpenAI(
-                api_key=config['api_key'],
-                model=model_name,
-                temperature=0.7
-            )
-        elif provider == "gemini":
-            chat_model = ChatGoogleGenerativeAI(
-                google_api_key=config['api_key'],
-                model=model_name,
-                temperature=0.7
-            )
+        if provider == "gemini":
+            # Gemini Model Fallback Strategy
+            # Some keys/regions don't support 1.5-flash yet, or require 'models/' prefix
+            model_candidates = [
+                model_name,                 # configured default (e.g. gemini-1.5-flash)
+                "gemini-1.5-flash",         # explicit preferred
+                "models/gemini-1.5-flash",  # prefix variation
+                "gemini-pro",               # old reliable fallback
+                "models/gemini-pro"
+            ]
+            
+            # Deduplicate preserving order
+            model_candidates = list(dict.fromkeys(model_candidates))
+            
+            last_error = None
+            response = None
+            
+            for candidate in model_candidates:
+                try:
+                    logger.info(f"Attempting Gemini generation with model: {candidate}")
+                    chat_model = ChatGoogleGenerativeAI(
+                        google_api_key=config['api_key'],
+                        model=candidate,
+                        temperature=0.7,
+                        convert_system_message_to_human=True
+                    )
+                    
+                    # Prepare messages
+                    context_str = json.dumps(context, indent=2) if isinstance(context, dict) else str(context)
+                    system_message = SystemMessage(content="You are a social engineering pretext generator. Generate realistic, ethically-sound pretexts for security awareness training. Always mark outputs as training material.\n\nContext: " + context_str + "\n\n")
+                    user_message = HumanMessage(content=prompt)
+                    
+                    response = await chat_model.ainvoke([system_message, user_message])
+                    if response:
+                        break # Success!
+                except Exception as e:
+                    logger.warning(f"Failed with model {candidate}: {str(e)}")
+                    last_error = e
+            
+            if not response:
+                raise last_error or Exception("All Gemini models failed")
+
         elif provider == "claude":
             chat_model = ChatAnthropic(
                 api_key=config['api_key'],
                 model=model_name,
                 temperature=0.7
             )
-        elif provider == "openrouter":
-            chat_model = ChatOpenAI(
-                api_key=config['api_key'],
-                model=model_name,
-                base_url="https://openrouter.ai/api/v1",
-                temperature=0.7
-            )
+            # Standard invocation for Claude
+            context_str = json.dumps(context, indent=2) if isinstance(context, dict) else str(context)
+            system_message = SystemMessage(content="You are a social engineering pretext generator. Generate realistic, ethically-sound pretexts for security awareness training. Always mark outputs as training material.\n\nContext: " + context_str + "\n\n")
+            user_message = HumanMessage(content=prompt)
+            response = await chat_model.ainvoke([system_message, user_message])
+
         else:
             raise HTTPException(status_code=400, detail=f"Unsupported provider: {provider}")
         
-        # Create messages
-        # Put context to system message
-        context_str = json.dumps(context, indent=2) if isinstance(context, dict) else str(context)
-        system_message = SystemMessage(content="You are a social engineering pretext generator. Generate realistic, ethically-sound pretexts for security awareness training. Always mark outputs as training material.\n\nContext: " + context_str + "\n\n")
-        user_message = HumanMessage(content=prompt)
-        
-        # Get response from LLM
-        response = await chat_model.ainvoke([system_message, user_message])
-        
         # Sanitize output (remove PII)
-        sanitized = sanitize_llm_output(response.content)
+        sanitized = repair_json(response.content)
         
         return {"generated_text": sanitized, "provider": provider}
+
     except Exception as e:
         logger.error(f"LLM generation failed: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"LLM generation failed: {str(e)}")
+        # Return a clearer error to the frontend
+        error_msg = str(e)
+        if "NOT_FOUND" in error_msg:
+             error_msg = "Model not found. Your API Key might not support the selected model, or the region is restricted."
+        raise HTTPException(status_code=500, detail=f"LLM Generation Error: {error_msg}")
 
-def sanitize_llm_output(text: str) -> str:
-    """Sanitize LLM outputs - no PII removal needed for simulation"""
-    # Just clean up markdown artifacts if any
+    # Remove markdown code blocks if present
+    text = re.sub(r'```(?:json)?', '', text)
+    text = text.replace('```', '')
+    
+    # Remove training markers
     text = text.replace('\\[TRAINING\\]', '').replace('\\[TRAINING MATERIAL\\]', '')
+    
     return text.strip()
+
+@api_router.post("/llm/chat")
+async def chat_interaction(request: Dict[str, Any], current_user: User = Depends(get_current_user)):
+    """Real-time Chat Interaction for Roleplay"""
+    history = request.get('history', [])
+    persona = request.get('persona', {})
+    user_message = request.get('message', '')
+    
+    # Get Config
+    config = await db.llm_configs.find_one({"enabled": True}, {"_id": 0})
+    if not config:
+        raise HTTPException(status_code=400, detail="LLM config missing")
+        
+    provider = config['provider']
+    api_key = config['api_key']
+    
+    from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
+    from langchain_google_genai import ChatGoogleGenerativeAI
+    from langchain_anthropic import ChatAnthropic
+    
+    # Construct System Prompt
+    system_prompt = f"""You are a roleplay actor in a cybersecurity simulation. 
+    Role: {persona.get('name', 'Attacker')}
+    Goal: {persona.get('goal', 'Trick the user')}
+    Personality: {persona.get('style', 'Manipulative')}
+    Context: {persona.get('context', 'Corporate Environment')}
+    
+    INSTRUCTIONS:
+    1. Respond naturally as your character. Short, realistic messages (whatsapp/email style).
+    2. Do NOT break character.
+    3. If the user successfully spots the attack or refuses securely, react accordingly (e.g. get angry, give up, or try a different angle).
+    4. If the user FAILS (gives password, clicks link), output a special marker in your text: [SUCCESS_ATTACK].
+    5. If the user permanently BLOCKS the attack, output: [ATTACK_FAILED].
+    """
+    
+    messages = [SystemMessage(content=system_prompt)]
+    
+    # Reconstruct history
+    for msg in history:
+        if msg['role'] == 'user':
+            messages.append(HumanMessage(content=msg['content']))
+        elif msg['role'] == 'assistant':
+            messages.append(AIMessage(content=msg['content']))
+            
+    # Add current message
+    messages.append(HumanMessage(content=user_message))
+    
+    response = None
+    last_error = None
+    error_logs = []
+    
+    try:
+        if provider == "groq":
+             # Groq Logic (Fast & Free Tier)
+             from langchain_groq import ChatGroq
+             chat = ChatGroq(
+                 api_key=api_key,
+                 model_name="llama-3.3-70b-versatile", # High quality default
+                 temperature=0.7
+             )
+             response = await chat.ainvoke(messages)
+             
+        elif provider == "gemini":
+            # Gemini Model Fallback Strategy
+            # Simplified fallback
+            model_candidates = ["gemini-1.5-flash", "gemini-pro"]
+            
+            for candidate in model_candidates:
+                try:
+                    logger.info(f"Chat attempt with model: {candidate}")
+                    convert_system = "1.5" not in candidate
+                        
+                    chat = ChatGoogleGenerativeAI(
+                        google_api_key=api_key, 
+                        model=candidate, 
+                        temperature=0.8,
+                        convert_system_message_to_human=convert_system
+                    )
+                    
+                    # Timeout protection
+                    import asyncio
+                    try:
+                        response = await asyncio.wait_for(chat.ainvoke(messages), timeout=15.0)
+                    except asyncio.TimeoutError:
+                        raise Exception("Request timed out")
+
+                    if response:
+                        logger.info(f"Chat success with model: {candidate}")
+                        break
+                except Exception as e:
+                    logger.warning(f"Chat failed with model {candidate}: {e}")
+                    last_error = e
+            
+            if not response:
+                raise Exception(f"Gemini failed: {last_error}")
+
+        elif provider == "claude":
+            chat = ChatAnthropic(api_key=api_key, model="claude-3-5-sonnet-20240620")
+            response = await chat.ainvoke(messages)
+            
+        else:
+             # Default to Groq if unknown, assuming user has groq key
+             from langchain_groq import ChatGroq
+             chat = ChatGroq(api_key=api_key, model_name="llama3-70b-8192")
+             response = await chat.ainvoke(messages)
+             
+        content = response.content
+        
+        status = "ongoing"
+        if "[SUCCESS_ATTACK]" in content:
+            status = "failed" # User failed the test
+            content = content.replace("[SUCCESS_ATTACK]", "")
+        elif "[ATTACK_FAILED]" in content:
+            status = "completed" # User passed
+            content = content.replace("[ATTACK_FAILED]", "")
+            
+        return {
+            "role": "assistant",
+            "content": content,
+            "status": status
+        }
+        
+    except Exception as e:
+        logger.error(f"Chat error: {e}")
+        error_msg = str(e)
+        if "401" in error_msg:
+             error_msg = f"Unauthorized. Please check your API Key for {provider}."
+        elif "404" in error_msg:
+             error_msg = f"Model Not Found. Provider: {provider}."
+        elif "429" in error_msg:
+             error_msg = f"Rate Limit Exceeded. Please try again later. Provider: {provider}."
+             
+        raise HTTPException(status_code=500, detail=error_msg)
+
+def repair_json(text: str) -> str:
+    """Attempt to repair and extract valid JSON from LLM output"""
+    text = sanitize_llm_output(text)
+    
+    # Try to find JSON object
+    start = text.find('{')
+    end = text.rfind('}')
+    
+    if start != -1 and end != -1:
+        text = text[start:end+1]
+        
+    try:
+        # Validate if it's already good
+        json.loads(text)
+        return text
+    except json.JSONDecodeError:
+        # Simple repairs
+        # 1. Replace single quotes with double quotes (imperfect but helps)
+        # text = text.replace("'", '"') 
+        # CAUTION: This might break text content. Only use if desperate.
+        pass
+        
+    return text
 
 # Settings Routes
 @api_router.get("/settings", response_model=Settings)

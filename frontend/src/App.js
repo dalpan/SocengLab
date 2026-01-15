@@ -6,6 +6,8 @@ import './App.css';
 
 // Pages
 import LoginPage from './pages/LoginPage';
+import ProfilePage from './pages/ProfilePage';
+import GlossaryPage from './pages/GlossaryPage'; // New Feature
 import DashboardPage from './pages/DashboardPage';
 import ScenariosPage from './pages/ScenariosPage';
 import QuizzesPage from './pages/QuizzesPage';
@@ -13,11 +15,12 @@ import SimulationsPage from './pages/SimulationsPage';
 import SettingsPage from './pages/SettingsPage';
 import InstallerPage from './pages/InstallerPage';
 import SimulationPlayerPage from './pages/SimulationPlayerPage';
-import AIChallengePage from './pages/AIChallengePage';
+import AIChatPage from './pages/AIChatPage';
 import QuizPlayerPage from './pages/QuizPlayerPage';
 
 // Layout
 import Layout from './components/Layout';
+import ProtectedRoute from './components/ProtectedRoute'; // Added for new routes
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -79,8 +82,10 @@ function App() {
           <Route path="/quizzes" element={<QuizzesPage />} />
           <Route path="/quizzes/:quizId/play" element={<QuizPlayerPage />} />
           <Route path="/simulations" element={<SimulationsPage />} />
-          <Route path="/simulations/:simulationId/play" element={<SimulationPlayerPage />} />
-          <Route path="/ai-challenge" element={<AIChallengePage />} />
+          <Route path="/simulations/:simulationId/play" element={<ProtectedRoute><SimulationPlayerPage /></ProtectedRoute>} />
+          <Route path="/glossary" element={<ProtectedRoute><GlossaryPage /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+          <Route path="/ai-challenge" element={<AIChatPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

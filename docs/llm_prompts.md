@@ -1,6 +1,6 @@
-# LLM Prompt Templates for Soceng Lab
+# LLM Prompt Templates for Pretexta
 
-This document contains all LLM prompts used in Soceng Lab for pretext generation and adaptive scenario content.
+This document contains all LLM prompts used in Pretexta for pretext generation and adaptive scenario content.
 
 ## System Prompts
 
@@ -311,6 +311,6 @@ When adding prompts:
 
 ---
 
-**Maintained by**: Soceng Lab Team  
+**Maintained by**: Pretexta Team  
 **Last Updated**: December 2025  
 **Next Review**: Quarterly

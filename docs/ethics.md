@@ -1,8 +1,8 @@
-# Ethical Guidelines for Soceng Lab
+# Ethical Guidelines for Pretexta
 
 ## 🎯 Purpose
 
-Soceng Lab is designed exclusively for **authorized security awareness training**. This document outlines ethical requirements and prohibited uses.
+Pretexta is designed exclusively for **authorized security awareness training**. This document outlines ethical requirements and prohibited uses.
 
 ## ✅ Permitted Uses
 
@@ -74,7 +74,7 @@ Soceng Lab is designed exclusively for **authorized security awareness training*
 
 ### Consent Modal (Built-in)
 
-Soceng Lab includes a mandatory consent modal that:
+Pretexta includes a mandatory consent modal that:
 - Displays before simulations
 - Requires explicit acknowledgment
 - Logs consent timestamp
@@ -139,7 +139,7 @@ LLM-generated content automatically sanitizes:
 
 ## 🚨 Reporting Misuse
 
-If you suspect misuse of Soceng Lab:
+If you suspect misuse of Pretexta:
 
 1. Document the incident
 2. Report to your organization's security team
@@ -148,7 +148,7 @@ If you suspect misuse of Soceng Lab:
 
 ## 👥 Responsible Disclosure
 
-For security vulnerabilities in Soceng Lab itself:
+For security vulnerabilities in Pretexta itself:
 
 1. **Do NOT** open a public issue
 2. Email maintainers with details
@@ -197,7 +197,7 @@ For security vulnerabilities in Soceng Lab itself:
 
 ---
 
-**By using Soceng Lab, you agree to these ethical guidelines.**
+**By using Pretexta, you agree to these ethical guidelines.**
 
 Violations may result in:
 - Legal action

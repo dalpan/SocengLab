@@ -41,12 +41,12 @@ build:
 	@echo "✅ Docker images built"
 
 up:
-	@echo "Starting Soceng Lab..."
+	@echo "Starting Pretexta..."
 	@docker-compose up -d
 	@echo "⏳ Waiting for services to start..."
 	@sleep 10
 	@echo ""
-	@echo "✅ Soceng Lab is running!"
+	@echo "✅ Pretexta is running!"
 	@echo ""
 	@echo "🌐 Frontend: http://localhost:3000"
 	@echo "🔌 Backend API: http://localhost:8001"
@@ -57,12 +57,12 @@ up:
 	@echo "Run 'make seed' to import sample content"
 
 down:
-	@echo "Stopping Soceng Lab..."
+	@echo "Stopping Pretexta..."
 	@docker-compose down
 	@echo "✅ Services stopped"
 
 restart:
-	@echo "Restarting Soceng Lab..."
+	@echo "Restarting Pretexta..."
 	@docker-compose restart
 	@echo "✅ Services restarted"
 
@@ -76,11 +76,12 @@ logs-frontend:
 	@docker-compose logs -f frontend
 
 db-shell:
-	@docker-compose exec mongodb mongosh -u soceng_admin -p soceng_secure_password_2025 --authenticationDatabase admin soceng_lab
+	@docker-compose exec mongodb mongosh -u soceng_admin -p soceng_secure_password_2025 --authenticationDatabase admin Pretexta
 
 seed:
 	@echo "Importing sample challenges and quizzes..."
 	@docker-compose exec backend python /app/scripts/import_yaml.py /app/data/sample
+	@docker-compose exec backend python /app/scripts/import_yaml.py /app/data/professionals
 	@echo "✅ Sample content imported"
 
 test:

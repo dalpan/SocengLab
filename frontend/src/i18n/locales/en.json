@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "Soceng Lab",
+    "title": "Pretexta",
     "tagline": "Adaptive Social Engineering Simulator"
   },
   "auth": {
@@ -21,7 +21,7 @@
     "about": "About"
   },
   "dashboard": {
-    "welcome": "Welcome to Soceng Lab",
+    "welcome": "Welcome to Pretexta",
     "recent_simulations": "Recent Simulations",
     "quick_actions": "Quick Actions",
     "start_simulation": "Start Simulation",
@@ -110,14 +110,12 @@
     "config_saved": "LLM configuration saved",
     "key_revoked": "API key revoked",
     "general": "General",
-
     "sidebar_title": "Help & Instructions",
     "general_title": "General Settings",
     "language_instruction_bold": "Language Selection",
     "language_instruction": "Changes the interface language immediately. Settings are persisted for future visits.",
     "reduce_motion_instruction_bold": "Reduce Motion",
     "reduce_motion_instruction": "Disables certain visual animations for a less distracting experience.",
-    
     "llm_config_title": "LLM Configuration",
     "api_key_note_bold": "API Key Security",
     "api_key_note": "Your API key is securely stored in the backend database. It is masked after saving and never displayed.",
@@ -125,7 +123,6 @@
     "provider_selection": "Choose your large language model provider (OpenAI, Gemini, Claude, etc.) and enter a valid API key.",
     "revoke_key_bold": "Revoke Key"
   },
-  
   "installer": {
     "initializing": "INITIALIZING...",
     "begin_setup": "BEGIN SETUP",
@@ -138,7 +135,7 @@
     "consent_required": "I understand and consent to participate in this training simulation.",
     "i_agree": "I AGREE",
     "setup_complete": "Setup Complete",
-    "launch_app": "Launch Soceng Lab",
+    "launch_app": "Launch Pretexta",
     "default_credentials": "Default credentials"
   },
   "simulation": {
@@ -179,5 +176,30 @@
     "status": "Status",
     "running": "running",
     "completed": "completed"
+  },
+  "glossary": {
+    "title": "Glossary",
+    "tagline": "Glossary of Terms",
+    "llm_not_configured": "LLM Not Configured",
+    "llm_config_message": "You need to configure an LLM API key to use AI glossary.",
+    "go_to_settings": "Go to Settings",
+    "generate_challenge": "Berikan Challenge Soal",
+    "ai_generate_description": "AI akan generate soal pilihan ganda tentang social engineering",
+    "mode_selection": "Simulasi Mode",
+    "mode_quiz": "Quiz",
+    "mode_quiz_desc": "Multiple choice questions",
+    "mode_conversation": "Conversation",
+    "mode_conversation_desc": "Interactive conversation",
+    "mode_scenario": "Scenario",
+    "mode_scenario_desc": "Story-based challenge",
+    "category": "Challenge Category",
+    "num_questions": "Number of Questions",
+    "difficulty": "Difficulty Level",
+    "questions_count": "questions",
+    "generate_button": "Generate {count} Questions",
+    "generating": "Generating {count} questions...",
+    "quiz_completed": "Quiz Completed!",
+    "generate_new": "Generate New Quiz",
+    "retake": "Retake Quiz"
   }
 }

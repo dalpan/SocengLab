@@ -14,7 +14,7 @@ export default function SimulationPlayerPage() {
   const { simulationId } = useParams();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  
+
   const [simulation, setSimulation] = useState(null);
   const [challenge, setChallenge] = useState(null);
   const [currentNode, setCurrentNode] = useState(null);
@@ -22,6 +22,7 @@ export default function SimulationPlayerPage() {
   const [score, setScore] = useState(100);
   const [loading, setLoading] = useState(true);
   const [aiThinking, setAiThinking] = useState(false);
+  const [historyStack, setHistoryStack] = useState([]); // Track node history for undo/retry
   const [language, setLanguage] = useState('en');
 
   useEffect(() => {
@@ -44,7 +45,7 @@ export default function SimulationPlayerPage() {
       if (simRes.data.challenge_id) {
         const challengeRes = await axios.get(`${API}/challenges/${simRes.data.challenge_id}`, { headers });
         setChallenge(challengeRes.data);
-        
+
         // Find current node or start
         const lastEvent = simRes.data.events?.[simRes.data.events.length - 1];
         const nodeId = lastEvent?.next_node || 'start';
@@ -60,6 +61,9 @@ export default function SimulationPlayerPage() {
   };
 
   const handleChoice = async (option) => {
+    // Save current state to stack before moving
+    setHistoryStack([...historyStack, currentNode]);
+
     const event = {
       node_id: currentNode.id,
       action: option.text,
@@ -88,7 +92,7 @@ export default function SimulationPlayerPage() {
 
     // Move to next node
     const nextNode = challenge.nodes.find(n => n.id === option.next);
-    
+
     if (nextNode) {
       // Check if AI should generate adaptive content
       if (nextNode.type === 'ai_adaptive' || (newScore < 50 && nextNode.type === 'message')) {
@@ -109,7 +113,7 @@ export default function SimulationPlayerPage() {
 
     try {
       const token = localStorage.getItem('soceng_token');
-      
+
       // Build context for AI
       const context = {
         scenario_title: challenge.title,
@@ -196,11 +200,11 @@ Format your response as JSON:
       });
 
       toast.success(result === 'success' ? '✅ Simulation completed!' : '⚠️ Simulation completed');
-      
-      // Delay before redirect
-      setTimeout(() => {
-        navigate('/simulations');
-      }, 3000);
+
+      // Removed auto-redirect
+      // setTimeout(() => {
+      //   navigate('/simulations');
+      // }, 3000);
     } catch (error) {
       console.error('Failed to complete simulation', error);
     }
@@ -255,15 +259,14 @@ Format your response as JSON:
               ))}
             </div>
           </div>
-          
+
           {/* Score Display */}
           <div className="text-right">
             <div className="text-sm text-muted-foreground uppercase tracking-wide">
               Security Awareness Score
             </div>
-            <div className={`text-4xl font-bold font-mono ${
-              score >= 70 ? 'text-tertiary' : score >= 40 ? 'text-warning' : 'text-destructive'
-            }`}>
+            <div className={`text-4xl font-bold font-mono ${score >= 70 ? 'text-tertiary' : score >= 40 ? 'text-warning' : 'text-destructive'
+              }`}>
               {Math.round(score)}
             </div>
           </div>
@@ -285,7 +288,7 @@ Format your response as JSON:
             <div className="p-3 bg-primary/20 rounded-lg">
               {getChannelIcon(currentNode.channel)}
             </div>
-            
+
             <div className="flex-1 space-y-4">
               {currentNode.ai_generated && (
                 <Badge className="bg-warning/20 text-warning border-warning/30">
@@ -293,21 +296,21 @@ Format your response as JSON:
                   AI-Generated Adaptive Response
                 </Badge>
               )}
-              
+
               {getContent(currentNode, 'subject') && (
                 <div>
                   <div className="text-xs text-muted-foreground uppercase">Subject</div>
                   <div className="text-lg font-semibold">{getContent(currentNode, 'subject')}</div>
                 </div>
               )}
-              
+
               {getContent(currentNode, 'from') && (
                 <div>
                   <div className="text-xs text-muted-foreground uppercase">From</div>
                   <div className="font-mono text-sm">{getContent(currentNode, 'from')}</div>
                 </div>
               )}
-              
+
               <div className="prose prose-invert max-w-none">
                 <p className="whitespace-pre-wrap">{getContent(currentNode, 'body') || getContent(currentNode, 'text')}</p>
               </div>
@@ -319,9 +322,9 @@ Format your response as JSON:
               )}
             </div>
           </div>
-          
+
           <div className="mt-6 flex justify-end">
-            <Button 
+            <Button
               onClick={() => {
                 const nextNode = challenge.nodes.find(n => n.id === currentNode.next);
                 setCurrentNode(nextNode);
@@ -340,7 +343,7 @@ Format your response as JSON:
           <h2 className="text-xl font-bold mb-6">
             {getContent(currentNode, 'text')}
           </h2>
-          
+
           <div className="space-y-3">
             {currentNode.options?.map((option, idx) => (
               <button
@@ -373,12 +376,10 @@ Format your response as JSON:
 
       {/* End Node */}
       {currentNode.type === 'end' && (
-        <Card className={`glass-panel p-8 text-center ${
-          currentNode.result === 'success' ? 'border-tertiary/50' : 'border-destructive/50'
-        }`}>
-          <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${
-            currentNode.result === 'success' ? 'bg-tertiary/20' : 'bg-destructive/20'
+        <Card className={`glass-panel p-8 text-center ${currentNode.result === 'success' ? 'border-tertiary/50' : 'border-destructive/50'
           }`}>
+          <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${currentNode.result === 'success' ? 'bg-tertiary/20' : 'bg-destructive/20'
+            }`}>
             {currentNode.result === 'success' ? (
               <Check className="w-10 h-10 text-tertiary" />
             ) : (
@@ -401,6 +402,28 @@ Format your response as JSON:
             <Button variant="outline" onClick={() => navigate('/scenarios')}>
               Try Another Challenge
             </Button>
+
+            {/* RETRY BUTTON FOR PROFESSIONAL LEARNING */}
+            {currentNode.result !== 'success' && (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  if (historyStack.length > 0) {
+                    // Get last node (before failure)
+                    const lastNode = historyStack[historyStack.length - 1];
+                    setCurrentNode(lastNode);
+                    setHistoryStack(historyStack.slice(0, -1));
+
+                    toast.info("Rewinding... Try a different approach!");
+                  } else {
+                    // Fallback if no history (e.g. reload)
+                    window.location.reload();
+                  }
+                }}
+              >
+                Start Over / Retry Step
+              </Button>
+            )}
           </div>
         </Card>
       )}

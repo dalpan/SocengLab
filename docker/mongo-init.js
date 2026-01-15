@@ -1,5 +1,5 @@
 // MongoDB initialization script
-db = db.getSiblingDB('soceng_lab');
+db = db.getSiblingDB('Pretexta');
 
 // Create collections
 db.createCollection('users');
@@ -16,4 +16,4 @@ db.quizzes.createIndex({ id: 1 }, { unique: true });
 db.simulations.createIndex({ id: 1 }, { unique: true });
 db.llm_configs.createIndex({ provider: 1 }, { unique: true });
 
-print('Soceng Lab database initialized successfully!');
+print('Pretexta database initialized successfully!');

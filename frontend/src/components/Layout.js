@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from './ui/button';
-import { Terminal, LayoutDashboard, FileCode, ListChecks, Activity, Settings, LogOut } from 'lucide-react';
+import { Terminal, LayoutDashboard, FileCode, ListChecks, Activity, Settings, LogOut, BookOpen } from 'lucide-react';
 
 export default function Layout({ children, onLogout }) {
   const { t } = useTranslation();
@@ -14,6 +14,7 @@ export default function Layout({ children, onLogout }) {
     { name: t('nav.quizzes'), path: '/quizzes', icon: ListChecks },
     { name: t('nav.ai_challenge'), path: '/ai-challenge', icon: Activity },
     { name: t('nav.history'), path: '/simulations', icon: Activity },
+    { name: t('nav.glossary', 'Glossary'), path: '/glossary', icon: BookOpen },
     { name: t('nav.settings'), path: '/settings', icon: Settings }
   ];
 
@@ -32,8 +33,8 @@ export default function Layout({ children, onLogout }) {
           <div className="p-6 border-b border-border">
             <Link to="/" className="flex items-center space-x-3 group">
               <Terminal className="w-8 h-8 text-primary group-hover:animate-pulse-slow" />
-              <span className="text-xl font-bold glitch text-primary">
-                SOCENG_LAB
+              <span className="text-xl font-bold glitch text-primary tracking-widest">
+                PRETEXTA
               </span>
             </Link>
           </div>

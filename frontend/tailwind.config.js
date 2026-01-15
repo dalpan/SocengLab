@@ -4,44 +4,45 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        border: 'hsl(215, 28%, 17%)',
-        input: 'hsl(215, 28%, 17%)',
-        ring: 'hsl(186, 100%, 50%)',
-        background: 'hsl(216, 28%, 6%)',
+        border: 'hsl(217, 33%, 17%)',
+        input: 'hsl(217, 33%, 17%)',
+        ring: 'hsl(217, 91%, 60%)',
+        background: 'hsl(222, 47%, 11%)', // Deep Navy
         foreground: 'hsl(210, 40%, 98%)',
         primary: {
-          DEFAULT: 'hsl(186, 100%, 50%)',
-          foreground: 'hsl(216, 28%, 6%)'
+          DEFAULT: 'hsl(217, 91%, 60%)', // Electric Blue
+          foreground: 'hsl(222, 47%, 11%)'
         },
         secondary: {
-          DEFAULT: 'hsl(340, 100%, 50%)',
+          DEFAULT: 'hsl(217, 19%, 27%)', // Slate
           foreground: 'hsl(210, 40%, 98%)'
         },
         destructive: {
-          DEFAULT: 'hsl(0, 100%, 50%)',
+          DEFAULT: 'hsl(0, 84%, 60%)', // Red
           foreground: 'hsl(210, 40%, 98%)'
         },
         muted: {
-          DEFAULT: 'hsl(215, 16%, 47%)',
-          foreground: 'hsl(215, 16%, 65%)'
+          DEFAULT: 'hsl(217, 19%, 27%)',
+          foreground: 'hsl(215, 20%, 65%)'
         },
         accent: {
-          DEFAULT: 'hsl(186, 100%, 50%)',
-          foreground: 'hsl(216, 28%, 6%)'
+          DEFAULT: 'hsl(180, 100%, 50%)', // Cyan
+          foreground: 'hsl(222, 47%, 11%)'
         },
         popover: {
-          DEFAULT: 'hsl(216, 28%, 10%)',
+          DEFAULT: 'hsl(217, 33%, 17%)',
           foreground: 'hsl(210, 40%, 98%)'
         },
         card: {
-          DEFAULT: 'hsl(216, 28%, 10%)',
+          DEFAULT: 'hsl(217, 33%, 17%)', // Card Dark
           foreground: 'hsl(210, 40%, 98%)'
         },
-        tertiary: 'hsl(88, 100%, 65%)',
-        warning: 'hsl(38, 100%, 56%)'
+        success: 'hsl(142, 71%, 45%)',
+        warning: 'hsl(48, 96%, 53%)',
+        info: 'hsl(217, 91%, 60%)'
       },
       fontFamily: {
-        sans: ['Space Grotesk', 'system-ui', 'sans-serif'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace']
       },
       borderRadius: {

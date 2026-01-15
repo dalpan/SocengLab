@@ -18,7 +18,7 @@ const SettingsSidebar = ({ t }) => (
       {t('settings.sidebar_title')} {/* "Help & Instructions" */}
     </h3>
     <hr className="border-border" />
-    
+
     {/* Instruksi Umum */}
     <div className="space-y-4">
       <h4 className="font-semibold text-lg flex items-center space-x-2 text-primary/80">
@@ -34,7 +34,7 @@ const SettingsSidebar = ({ t }) => (
         </li>
       </ul>
     </div>
-    
+
     <hr className="border-border" />
 
     {/* Instruksi LLM */}
@@ -69,7 +69,7 @@ export default function SettingsPage() {
     llm_enabled: false
   });
   const [llmConfigs, setLlmConfigs] = useState([]);
-  const [selectedProvider, setSelectedProvider] = useState('openai');
+  const [selectedProvider, setSelectedProvider] = useState('groq');
   const [apiKey, setApiKey] = useState('');
 
   useEffect(() => {
@@ -95,9 +95,9 @@ export default function SettingsPage() {
       const response = await axios.get(`${API}/llm/config`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       console.log('Loaded LLM configs:', response.data);
-      
+
       // Show all configs (api_key is masked as '***' by backend)
       setLlmConfigs(response.data);
     } catch (error) {
@@ -133,7 +133,7 @@ export default function SettingsPage() {
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       setApiKey('');
       loadLLMConfigs();
       toast.success('LLM configuration saved');
@@ -152,13 +152,13 @@ export default function SettingsPage() {
     <div className="max-w-7xl mx-auto space-y-8 p-4">
       <div>
         <h1 className="text-4xl font-bold mb-2">{t('settings.title')}</h1>
-        <p className="text-muted-foreground font-mono">Configure your Soceng Lab preferences</p>
+        <p className="text-muted-foreground font-mono">Configure your Pretexta preferences</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* KOLOM KIRI (Pengaturan) */}
         <div className="lg:col-span-2 space-y-8">
-          
+
           {/* General Settings */}
           <div className="glass-panel p-6 space-y-6">
             <div className="flex items-center space-x-3 mb-4">
@@ -216,11 +216,9 @@ export default function SettingsPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="openai">OpenAI (GPT-4o)</SelectItem>
+                    <SelectItem value="groq">Groq AI (Recommended - Free Tier)</SelectItem>
                     <SelectItem value="gemini">Google Gemini</SelectItem>
                     <SelectItem value="claude">Anthropic Claude</SelectItem>
-                    <SelectItem value="generic">Generic OpenAI-Compatible</SelectItem>
-                    <SelectItem value="openrouter">OpenRouter</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -257,9 +255,8 @@ export default function SettingsPage() {
                     >
                       <div className="flex items-center space-x-3">
                         <span className="font-mono text-sm font-bold">{config.provider.toUpperCase()}</span>
-                        <span className={`px-2 py-1 rounded text-xs ${
-                          config.enabled ? 'bg-primary/20 text-primary' : 'bg-muted/20 text-muted-foreground'
-                        }`}>
+                        <span className={`px-2 py-1 rounded text-xs ${config.enabled ? 'bg-primary/20 text-primary' : 'bg-muted/20 text-muted-foreground'
+                          }`}>
                           {config.enabled ? 'ENABLED' : 'DISABLED'}
                         </span>
                       </div>

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -8,13 +8,18 @@
   * {
     @apply border-border;
   }
-  
+
   body {
     @apply bg-background text-foreground font-mono;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   }
-  
-  h1, h2, h3, h4, h5, h6 {
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-sans;
   }
 }
@@ -23,16 +28,40 @@
   .text-balance {
     text-wrap: balance;
   }
-  
+
   .glass-panel {
     @apply bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl shadow-xl;
   }
-  
+
   .neon-border {
-    @apply border border-primary/50 shadow-[0_0_15px_rgba(0,229,255,0.3)];
+    @apply border border-primary/50 shadow-[0_0_15px_rgba(0, 229, 255, 0.3)];
   }
-  
+
   .motion-reduce {
     @apply motion-reduce:transition-none motion-reduce:animate-none;
+  }
+
+  .glitch {
+    position: relative;
+    text-shadow: 2px 2px 0px rgba(0, 255, 255, 0.2), -2px -2px 0px rgba(255, 0, 255, 0.2);
+    animation: glitch-anim 3s infinite linear alternate-reverse;
+  }
+
+  @keyframes glitch-anim {
+    0% {
+      text-shadow: 2px 2px 0px rgba(0, 255, 255, 0.2), -2px -2px 0px rgba(255, 0, 255, 0.2);
+    }
+
+    20% {
+      text-shadow: -2px 2px 0px rgba(0, 255, 255, 0.2), 2px -2px 0px rgba(255, 0, 255, 0.2);
+    }
+
+    40% {
+      text-shadow: 2px -2px 0px rgba(0, 255, 255, 0.2), -2px 2px 0px rgba(255, 0, 255, 0.2);
+    }
+
+    100% {
+      text-shadow: 2px 2px 0px rgba(0, 255, 255, 0.2), -2px -2px 0px rgba(255, 0, 255, 0.2);
+    }
   }
 }

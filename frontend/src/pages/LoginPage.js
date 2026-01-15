@@ -43,7 +43,7 @@ export default function LoginPage({ onLogin }) {
           <div className="flex items-center justify-center space-x-3">
             <Terminal className="w-12 h-12 text-primary" />
             <h1 className="text-4xl font-bold glitch text-primary">
-              SOCENG_LAB
+              Pretexta
             </h1>
           </div>
           <p className="text-muted-foreground font-mono text-sm">

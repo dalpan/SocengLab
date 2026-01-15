@@ -8,7 +8,7 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: soceng_admin
       MONGO_INITDB_ROOT_PASSWORD: soceng_secure_password_2025
-      MONGO_INITDB_DATABASE: soceng_lab
+      MONGO_INITDB_DATABASE: Pretexta
     volumes:
       - mongodb_data:/data/db
       - ./docker/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
@@ -24,8 +24,8 @@ services:
     container_name: soceng_backend
     restart: unless-stopped
     environment:
-      MONGO_URL: mongodb://soceng_admin:soceng_secure_password_2025@mongodb:27017/soceng_lab?authSource=admin
-      DB_NAME: soceng_lab
+      MONGO_URL: mongodb://soceng_admin:soceng_secure_password_2025@mongodb:27017/Pretexta?authSource=admin
+      DB_NAME: Pretexta
       JWT_SECRET: ${JWT_SECRET:-change-this-secret-key-in-production}
       CORS_ORIGINS: http://localhost:3000,http://localhost:80
     volumes:

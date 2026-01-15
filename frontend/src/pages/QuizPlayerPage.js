@@ -14,7 +14,7 @@ export default function QuizPlayerPage() {
   const { quizId } = useParams();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  
+
   const [quiz, setQuiz] = useState(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState({});
@@ -23,13 +23,33 @@ export default function QuizPlayerPage() {
   const [loading, setLoading] = useState(true);
   const [language, setLanguage] = useState('en');
   const [startTime, setStartTime] = useState(null);
+
   const [endTime, setEndTime] = useState(null);
+  const [timeLeft, setTimeLeft] = useState(30); // 30 seconds per question
 
   useEffect(() => {
     loadQuiz();
     setLanguage(localStorage.getItem('soceng_language') || 'en');
     setStartTime(Date.now());
   }, [quizId]);
+
+  // Timer Effect
+  useEffect(() => {
+    if (showResults || !quiz) return;
+
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          // Time expired, move next
+          handleNext(true);
+          return 30;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [currentQuestionIndex, showResults, quiz]);
 
   const loadQuiz = async () => {
     try {
@@ -53,9 +73,22 @@ export default function QuizPlayerPage() {
     });
   };
 
-  const handleNext = () => {
+  const handleNext = (autoSkip = false) => {
+    // If autoSkip (timer), mark as skipped/wrong if not answered
+    if (autoSkip && selectedAnswers[quiz.questions[currentQuestionIndex].id] === undefined) {
+      // Optionally mark as -1 or null to indicate timeout
+      setSelectedAnswers(prev => ({
+        ...prev,
+        [quiz.questions[currentQuestionIndex].id]: -1
+      }));
+    }
+
     if (currentQuestionIndex < quiz.questions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      setCurrentQuestionIndex(prev => prev + 1);
+      setTimeLeft(30); // Reset timer
+    } else if (autoSkip) {
+      // Timeout on last question -> Submit
+      handleSubmit();
     }
   };
 
@@ -67,7 +100,7 @@ export default function QuizPlayerPage() {
 
   const handleSubmit = async () => {
     setEndTime(Date.now());
-    
+
     // Calculate score
     let correctCount = 0;
     quiz.questions.forEach(q => {
@@ -93,7 +126,9 @@ export default function QuizPlayerPage() {
           question_id: qId,
           answer_index: ansIdx,
           timestamp: new Date().toISOString()
-        }))
+        })),
+        title: quiz.title,
+        challenge_Title: quiz.title
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -136,22 +171,19 @@ export default function QuizPlayerPage() {
     return (
       <div className="max-w-4xl mx-auto space-y-6">
         <Card className="glass-panel p-8 text-center">
-          <div className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 ${
-            score >= 70 ? 'bg-tertiary/20' : score >= 40 ? 'bg-warning/20' : 'bg-destructive/20'
-          }`}>
-            <Award className={`w-12 h-12 ${
-              score >= 70 ? 'text-tertiary' : score >= 40 ? 'text-warning' : 'text-destructive'
-            }`} />
+          <div className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 ${score >= 70 ? 'bg-tertiary/20' : score >= 40 ? 'bg-warning/20' : 'bg-destructive/20'
+            }`}>
+            <Award className={`w-12 h-12 ${score >= 70 ? 'text-tertiary' : score >= 40 ? 'text-warning' : 'text-destructive'
+              }`} />
           </div>
 
           <h2 className="text-3xl font-bold mb-4">Quiz Completed!</h2>
-          
+
           <div className="grid grid-cols-3 gap-6 mb-8">
             <div className="glass-panel p-4">
               <div className="text-sm text-muted-foreground uppercase">Score</div>
-              <div className={`text-4xl font-bold font-mono ${
-                score >= 70 ? 'text-tertiary' : score >= 40 ? 'text-warning' : 'text-destructive'
-              }`}>
+              <div className={`text-4xl font-bold font-mono ${score >= 70 ? 'text-tertiary' : score >= 40 ? 'text-warning' : 'text-destructive'
+                }`}>
                 {score}%
               </div>
             </div>
@@ -185,38 +217,36 @@ export default function QuizPlayerPage() {
           {quiz.questions.map((question, qIdx) => {
             const selectedIndex = selectedAnswers[question.id];
             const isCorrect = selectedIndex !== undefined && question.options[selectedIndex]?.correct;
-            
+
             return (
-              <Card key={question.id} className={`glass-panel p-6 ${
-                isCorrect ? 'border-tertiary/30' : 'border-destructive/30'
-              }`}>
+              <Card key={question.id} className={`glass-panel p-6 ${isCorrect ? 'border-tertiary/30' : 'border-destructive/30'
+                }`}>
                 <div className="flex items-start space-x-4">
                   {isCorrect ? (
                     <CheckCircle2 className="w-6 h-6 text-tertiary mt-1" />
                   ) : (
                     <XCircle className="w-6 h-6 text-destructive mt-1" />
                   )}
-                  
+
                   <div className="flex-1">
                     <div className="font-bold mb-3">
                       Question {qIdx + 1}: {getContent(question, 'text')}
                     </div>
-                    
+
                     <div className="space-y-2 mb-4">
                       {question.options.map((option, optIdx) => {
                         const isSelected = selectedIndex === optIdx;
                         const isCorrectOption = option.correct;
-                        
+
                         return (
                           <div
                             key={optIdx}
-                            className={`p-3 rounded border ${
-                              isCorrectOption
-                                ? 'border-tertiary/50 bg-tertiary/10'
-                                : isSelected
+                            className={`p-3 rounded border ${isCorrectOption
+                              ? 'border-tertiary/50 bg-tertiary/10'
+                              : isSelected
                                 ? 'border-destructive/50 bg-destructive/10'
                                 : 'border-muted/30'
-                            }`}
+                              }`}
                           >
                             <div className="flex items-center justify-between">
                               <span>{language === 'id' && option.text_id ? option.text_id : option.text}</span>
@@ -264,10 +294,11 @@ export default function QuizPlayerPage() {
             </div>
           </div>
           <div className="text-right">
-            <div className="text-sm text-muted-foreground">Question</div>
-            <div className="text-3xl font-bold font-mono text-primary">
-              {currentQuestionIndex + 1}/{quiz.questions.length}
+            <div className={`text-xl font-mono font-bold ${timeLeft < 10 ? 'text-destructive animate-pulse' : 'text-primary'}`}>
+              <Clock className="w-4 h-4 inline mr-1" />
+              {timeLeft}s
             </div>
+            <div className="text-xs text-muted-foreground">remaining</div>
           </div>
         </div>
 
@@ -291,19 +322,17 @@ export default function QuizPlayerPage() {
             <button
               key={idx}
               onClick={() => handleAnswerSelect(currentQuestion.id, idx)}
-              className={`w-full p-4 text-left rounded-lg border transition-colors ${
-                selectedAnswer === idx
-                  ? 'bg-primary/10 border-primary/50'
-                  : 'bg-muted/10 border-muted/30 hover:border-primary/30'
-              }`}
+              className={`w-full p-4 text-left rounded-lg border transition-colors ${selectedAnswer === idx
+                ? 'bg-primary/10 border-primary/50'
+                : 'bg-muted/10 border-muted/30 hover:border-primary/30'
+                }`}
               data-testid={`quiz-option-${idx}`}
             >
               <div className="flex items-center space-x-3">
-                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                  selectedAnswer === idx
-                    ? 'border-primary bg-primary'
-                    : 'border-muted-foreground'
-                }`}>
+                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${selectedAnswer === idx
+                  ? 'border-primary bg-primary'
+                  : 'border-muted-foreground'
+                  }`}>
                   {selectedAnswer === idx && (
                     <div className="w-2 h-2 bg-background rounded-full" />
                   )}
@@ -334,16 +363,16 @@ export default function QuizPlayerPage() {
             Next
           </Button>
         ) : (
+
           <Button
             onClick={handleSubmit}
-            disabled={Object.keys(selectedAnswers).length !== quiz.questions.length}
-            className="bg-tertiary hover:bg-tertiary/90 text-background"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground"
             data-testid="submit-quiz-btn"
           >
-            Submit Quiz
+            Finish & Submit
           </Button>
         )}
       </div>
-    </div>
+    </div >
   );
 }

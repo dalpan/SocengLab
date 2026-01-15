@@ -36,14 +36,14 @@ export default function InstallerPage({ onComplete }) {
           <div className="flex items-center justify-center space-x-4">
             <Terminal className="w-16 h-16 text-primary animate-pulse-slow" />
             <h1 className="text-6xl font-bold glitch text-primary">
-              SOCENG_LAB
+              Pretexta
             </h1>
           </div>
-          
+
           <p className="text-xl font-mono text-muted-foreground terminal-typing">
             &gt; Initializing adaptive social engineering simulator...
           </p>
-          
+
           <Button
             onClick={() => {
               console.log('BEGIN SETUP clicked');
@@ -65,29 +65,24 @@ export default function InstallerPage({ onComplete }) {
       <div className="glass-panel p-8 max-w-2xl w-full">
         <div className="mb-8">
           <div className="flex items-center space-x-2 mb-4">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-              step >= 1 ? 'bg-primary text-background' : 'bg-muted text-muted-foreground'
-            }`}>
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${step >= 1 ? 'bg-primary text-background' : 'bg-muted text-muted-foreground'
+              }`}>
               {step > 1 ? <Check /> : '1'}
             </div>
             <div className="flex-1 h-1 bg-muted">
-              <div className={`h-full bg-primary transition-all ${
-                step >= 2 ? 'w-full' : 'w-0'
-              }`} />
+              <div className={`h-full bg-primary transition-all ${step >= 2 ? 'w-full' : 'w-0'
+                }`} />
             </div>
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-              step >= 2 ? 'bg-primary text-background' : 'bg-muted text-muted-foreground'
-            }`}>
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${step >= 2 ? 'bg-primary text-background' : 'bg-muted text-muted-foreground'
+              }`}>
               {step > 2 ? <Check /> : '2'}
             </div>
             <div className="flex-1 h-1 bg-muted">
-              <div className={`h-full bg-primary transition-all ${
-                step >= 3 ? 'w-full' : 'w-0'
-              }`} />
+              <div className={`h-full bg-primary transition-all ${step >= 3 ? 'w-full' : 'w-0'
+                }`} />
             </div>
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-              step >= 3 ? 'bg-primary text-background' : 'bg-muted text-muted-foreground'
-            }`}>
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${step >= 3 ? 'bg-primary text-background' : 'bg-muted text-muted-foreground'
+              }`}>
               3
             </div>
           </div>
@@ -100,7 +95,7 @@ export default function InstallerPage({ onComplete }) {
               <h2 className="text-3xl font-bold">{t('settings.language')}</h2>
               <p className="text-muted-foreground">Choose your preferred language</p>
             </div>
-            
+
             <Select value={language} onValueChange={handleLanguageChange}>
               <SelectTrigger className="w-full" data-testid="language-select">
                 <SelectValue />
@@ -110,13 +105,13 @@ export default function InstallerPage({ onComplete }) {
                 <SelectItem value="id">Bahasa Indonesia</SelectItem>
               </SelectContent>
             </Select>
-            
-            <Button 
+
+            <Button
               onClick={() => {
                 console.log('Next step clicked, current step:', step);
                 setStep(2);
-              }} 
-              className="w-full" 
+              }}
+              className="w-full"
               data-testid="next-step-btn"
               type="button"
             >
@@ -132,7 +127,7 @@ export default function InstallerPage({ onComplete }) {
               <h2 className="text-3xl font-bold">{t('ethics.title')}</h2>
               <p className="text-muted-foreground">{t('ethics.warning')}</p>
             </div>
-            
+
             <div className="bg-destructive/10 border border-destructive/50 rounded-lg p-6 space-y-4">
               <h3 className="font-bold text-lg">⚠️ Important Ethical Guidelines</h3>
               <ul className="list-disc list-inside space-y-2 text-sm">
@@ -143,7 +138,7 @@ export default function InstallerPage({ onComplete }) {
                 <li>No real credentials or PII should be collected</li>
               </ul>
             </div>
-            
+
             <div className="flex items-start space-x-3">
               <Checkbox
                 id="consent"
@@ -155,11 +150,11 @@ export default function InstallerPage({ onComplete }) {
                 {t('ethics.consent_required')}
               </label>
             </div>
-            
+
             <div className="flex space-x-4">
-              <Button 
-                onClick={() => setStep(1)} 
-                variant="outline" 
+              <Button
+                onClick={() => setStep(1)}
+                variant="outline"
                 className="w-full"
                 type="button"
               >
@@ -193,21 +188,21 @@ export default function InstallerPage({ onComplete }) {
               </div>
               <h2 className="text-3xl font-bold">Setup Complete</h2>
               <p className="text-muted-foreground">
-                Soceng Lab is ready to use. Default credentials:<br />
+                Pretexta is ready to use. Default credentials:<br />
                 <code className="text-primary">soceng / Cialdini@2025!</code>
               </p>
             </div>
-            
-            <Button 
+
+            <Button
               onClick={() => {
                 console.log('Complete setup clicked');
                 handleComplete();
-              }} 
-              className="w-full uppercase tracking-wider" 
+              }}
+              className="w-full uppercase tracking-wider"
               data-testid="complete-setup-btn"
               type="button"
             >
-              Launch Soceng Lab
+              Launch Pretexta
             </Button>
           </div>
         )}

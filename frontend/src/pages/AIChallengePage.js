@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import {
   Zap, Loader2, AlertTriangle, CheckCircle2, XCircle, Award,
   Eye, EyeOff, Flag, MessageSquare, AlertCircle, BookOpen,
-  ChevronLeft, ChevronRight, RotateCcw, Download
+  ChevronLeft, ChevronRight, RotateCcw, Download, RefreshCw
 } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -18,6 +18,7 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 export default function AIChallengePage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const chatEndRef = useRef(null);
 
   // State Management
   const [llmConfigured, setLlmConfigured] = useState(false);
@@ -25,85 +26,78 @@ export default function AIChallengePage() {
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // Error Handling
+  const [generateError, setGenerateError] = useState(null);
+
   // Challenge Configuration
   const [selectedCategory, setSelectedCategory] = useState('phishing');
   const [selectedChallengeType, setSelectedChallengeType] = useState('comprehensive');
-  const [numQuestions, setNumQuestions] = useState(10);
+  const [numQuestions, setNumQuestions] = useState(5); // Default reduced for speed
   const [difficulty, setDifficulty] = useState('medium');
   const [language, setLanguage] = useState('indonesian');
+  const [selectedProvider, setSelectedProvider] = useState('gemini');
 
   // Challenge Data & Progress
   const [generatedChallenge, setGeneratedChallenge] = useState(null);
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
   const [userAnswers, setUserAnswers] = useState({});
-  const [questionFeedback, setQuestionFeedback] = useState({});
   const [showResults, setShowResults] = useState(false);
   const [finalScore, setFinalScore] = useState(0);
-  const [showDetailedExplanation, setShowDetailedExplanation] = useState({});
 
   // Chatbot state
   const [chatHistory, setChatHistory] = useState([]);
   const [currentAnswer, setCurrentAnswer] = useState('');
   const [isEvaluating, setIsEvaluating] = useState(false);
-  const [conversationState, setConversationState] = useState('question');
   const [evaluationResults, setEvaluationResults] = useState({}); // Store AI evaluation results
 
   // Challenge Type Configuration
   const challengeTypes = {
     comprehensive: {
       label: 'Comprehensive Challenge',
-      icon: '📋',
-      description: 'Multi-format challenge with various question types',
+      icon: '🛡️',
+      description: 'Full-spectrum social engineering test (Quiz, Scenarios, & Analysis)',
       formats: ['multiple_choice', 'scenario_analysis', 'red_flag_identification', 'email_analysis'],
       instructions: [
-        'Read each question carefully',
-        'Apply logic and knowledge of social engineering tactics',
-        'Each question may have a different format',
-        'There is no time limit for each question',
-        'You can return to previous questions',
-        'Detailed explanations are available after submitting your answers'
+        'Analyze each situation carefully',
+        'Identify red flags and manipulation tactics',
+        'Choose the best course of action',
+        'Learn from detailed AI feedback'
       ]
     },
     email_analysis: {
-      label: 'Email Analysis Challenge',
+      label: 'Email Security Analyst',
       icon: '📧',
-      description: 'Analyze phishing emails and identify red flags',
-      formats: ['email_full_analysis', 'header_analysis'],
+      description: 'Deep dive into phishing email detection and header analysis',
+      formats: ['email_full_analysis'],
       instructions: [
-        'Analyze every provided email thoroughly',
-        'Identify the social engineering tactics used',
-        'Pay attention to the sender, subject line, and body content',
-        'Look for authentication signs (SPF, DKIM, DMARC)',
-        'Document every red flag you find',
-        'Provide recommendations for improvement for each email'
+        'Examine sender, subject, and headers',
+        'Spot malicious links or attachments',
+        'Identify urgency and authority triggers',
+        'Differentiate between spam and targeted attacks'
       ]
     },
     interactive: {
-      label: 'Interactive Conversation',
+      label: 'Live Attacker Simulation',
       icon: '💬',
-      description: 'Real-time conversation simulation with an attacker',
-      formats: ['conversation', 'reactive_scenario'],
+      description: 'Real-time roleplay against an AI social engineer',
+      formats: ['conversation'],
       instructions: [
-        'Interact with an AI acting as a social engineer',
-        'Respond naturally using the available options',
-        'Your choices will affect the flow of the conversation',
-        'The AI will adapt based on your choices',
-        'Goal: Avoid manipulation and maintain security awareness',
-        'Each interaction is scored for susceptibility level'
+        'Engage with a potential "attacker"',
+        'Identify when the conversation turns malicious',
+        'Resist manipulation techniques',
+        'Report the incident correctly'
       ]
     },
     scenario: {
-      label: 'Real-World Scenarios',
-      icon: '🎭',
-      description: 'Real-world scenarios with multiple decision points',
-      formats: ['scenario_branching', 'consequence_analysis'],
+      label: 'Corporate Scenarios',
+      icon: '🏢',
+      description: 'Complex business situations requiring security judgment',
+      formats: ['scenario_branching'],
       instructions: [
-        'Read the scenario completely',
-        'Consider all aspects: context, techniques, warning signs',
-        'Choose the most appropriate action for the situation',
-        'Understand the consequences of each choice',
-        'Some decisions may have different outcomes',
-        'Learn from suboptimal results'
+        'Review the business context',
+        'Weigh security vs. productivity',
+        'Make critical decisions under pressure',
+        'Understand the business impact'
       ]
     }
   };
@@ -111,6 +105,11 @@ export default function AIChallengePage() {
   useEffect(() => {
     checkLLMConfig();
   }, []);
+
+  // Auto-scroll chat
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatHistory, isEvaluating]);
 
   const checkLLMConfig = async () => {
     try {
@@ -121,7 +120,7 @@ export default function AIChallengePage() {
       const hasEnabled = response.data.some(config => config.enabled);
       setLlmConfigured(hasEnabled);
       if (!hasEnabled) {
-        toast.error('Please configure LLM API key in Settings first');
+        // Don't toast on load, just show the UI state
       }
     } catch (error) {
       console.error('Failed to check LLM config', error);
@@ -132,24 +131,24 @@ export default function AIChallengePage() {
 
   const generateChallenge = async () => {
     if (!llmConfigured) {
-      toast.error('LLM not configured. Go to Settings → LLM Configuration');
+      toast.error('LLM not configured. Please check Settings.');
       navigate('/settings');
       return;
     }
 
     setGenerating(true);
+    setGenerateError(null);
     setGeneratedChallenge(null);
     setUserAnswers({});
-    setQuestionFeedback({});
     setCurrentQuestionIdx(0);
     setShowResults(false);
+    setChatHistory([]);
+    setEvaluationResults({});
 
     try {
       const token = localStorage.getItem('soceng_token');
       const challengeTypeConfig = challengeTypes[selectedChallengeType];
-
-      // Build comprehensive prompt based on challenge type
-      let prompt = buildPrompt(selectedChallengeType, challengeTypeConfig);
+      const prompt = buildPrompt(selectedChallengeType, challengeTypeConfig);
 
       const response = await axios.post(
         `${API}/llm/generate`,
@@ -161,1098 +160,558 @@ export default function AIChallengePage() {
             num_questions: numQuestions,
             difficulty: difficulty,
             language: language,
-            formats: challengeTypeConfig.formats
-          }
+          },
+          provider: selectedProvider
         },
         {
           headers: { Authorization: `Bearer ${token}` }
         }
       );
 
-      const challengeData = parseAndValidateChallenge(response.data.generated_text, selectedChallengeType);
+      // Backend should handle JSON repair, but we double check here
+      let challengeData;
+      try {
+        if (typeof response.data.generated_text === 'object') {
+          challengeData = response.data.generated_text;
+        } else {
+          challengeData = JSON.parse(response.data.generated_text);
+        }
+      } catch (e) {
+        console.warn("Retrying JSON parse with cleanup...");
+        // Client-side fallback repair
+        const cleanText = response.data.generated_text.replace(/```json/g, '').replace(/```/g, '').trim();
+        const jsonStart = cleanText.indexOf('{');
+        const jsonEnd = cleanText.lastIndexOf('}');
+        if (jsonStart !== -1 && jsonEnd !== -1) {
+          challengeData = JSON.parse(cleanText.substring(jsonStart, jsonEnd + 1));
+        } else {
+          throw new Error("Could not parse AI response as JSON");
+        }
+      }
+
+      // Validate structure
+      if (!challengeData.questions || !Array.isArray(challengeData.questions)) {
+        throw new Error("Invalid challenge structure received from AI");
+      }
+
+      // Normalize structure
+      challengeData.questions = challengeData.questions.map((q, idx) => ({
+        ...q,
+        id: q.id || `q-${idx}`,
+        type: q.type || 'multiple_choice',
+        options: Array.isArray(q.options)
+          ? q.options.map(opt => (typeof opt === 'string' ? { text: opt } : opt))
+          : []
+      }));
+
       setGeneratedChallenge(challengeData);
-      toast.success(`🤖 Generated ${challengeData.questions?.length || 0} challenge questions!`);
+      toast.success(`🎉 Generated ${challengeData.questions.length} questions!`);
+
+      // Initialize chat
+      initializeChatbot(challengeData.questions[0]);
+
     } catch (error) {
       console.error('Failed to generate challenge', error);
-      toast.error(`Failed to generate challenge: ${error.response?.data?.detail || error.message}`);
+      setGenerateError(error.message || "Failed to generate challenge. Please try again.");
+      toast.error("Generation failed. Please try again.");
     } finally {
       setGenerating(false);
     }
   };
 
+  const initializeChatbot = (firstQuestion) => {
+    setChatHistory([{
+      type: 'assistant',
+      content: firstQuestion.question,
+      question: firstQuestion,
+      timestamp: new Date()
+    }]);
+  };
+
   const buildPrompt = (type, config) => {
-    const langLabel = language === 'indonesian' ? 'Indonesian' : 'English';
-    const langInstructions = language === 'indonesian' 
-      ? 'Semua teks harus dalam Bahasa Indonesia'
-      : 'All text should be in English';
+    const langInstructions = language === 'indonesian'
+      ? 'OUTPUT LANGUAGE: INDONESIAN (BAHASA INDONESIA) ONLY.'
+      : 'OUTPUT LANGUAGE: ENGLISH ONLY.';
+
+    return `
+    ROLE: You are an expert Cyber Security Trainer specializing in Social Engineering.
+    TASK: Create a ${difficulty} level '${config.label}' challenge about '${selectedCategory}'.
     
-    const basePrompt = `You are an expert social engineering security trainer creating an interactive challenge for awareness training.
-
-Challenge Type: ${config.label}
-Category: ${selectedCategory}
-Difficulty: ${difficulty}
-Number of Questions: ${numQuestions}
-Target Formats: ${config.formats.join(', ')}
-Language: ${langLabel}
-
-Create a comprehensive, detailed challenge with the following characteristics:
-${langInstructions}`;
-
-    const typeSpecificPrompts = {
-      comprehensive: `
-1. MIX QUESTION TYPES:
-   - Multiple choice (dengan 4-5 pilihan)
-   - Scenario analysis (skenario + pertanyaan terbuka)
-   - Red flag identification (identifikasi tanda peringatan)
-   - Email analysis (analisis email phishing)
-
-2. SETIAP PERTANYAAN HARUS MEMILIKI:
-   - "question": Pertanyaan yang jelas dan detail
-   - "type": Tipe pertanyaan (multiple_choice|scenario|red_flag|email)
-   - "content": Konten lengkap (email body, skenario, dll)
-   - "correct_answer": Jawaban yang benar
-   - "explanation": Penjelasan detail mengapa jawaban tersebut benar
-   - "instructions": Instruksi step-by-step untuk menjawab
-   - "notes": Tips dan hal-hal penting yang harus diperhatikan
-   - "cialdini_principle": Prinsip Cialdini yang digunakan (authority|urgency|reciprocity|social_proof|liking|scarcity)
-   - "learning_objective": Apa yang seharusnya dipelajari
-   - "real_world_context": Konteks kehidupan nyata
-
-3. FORMAT RESPONSE JSON:
-{
-  "challenge_title": "Judul challenge",
-  "category": "${selectedCategory}",
-  "difficulty": "${difficulty}",
-  "type": "${type}",
-  "total_questions": ${numQuestions},
-  "estimated_time": "X menit",
-  "questions": [
+    ${langInstructions}
+    
+    FORMAT: valid JSON only. NO MARKDOWN. NO EXPLANATIONS.
+    STRUCTURE:
     {
-      "id": "q1",
-      "type": "multiple_choice|scenario|red_flag|email",
-      "question": "...",
-      "content": "...",
-      "options": [...], // untuk multiple choice
-      "correct_answer": "...",
-      "explanation": "Penjelasan detail dan edukatif",
-      "instructions": ["Step 1: ...", "Step 2: ...", ...],
-      "notes": ["Note 1: ...", "Note 2: ...", ...],
-      "cialdini_principle": "...",
-      "learning_objective": "...",
-      "real_world_context": "...",
-      "difficulty_level": "beginner|intermediate|advanced",
-      "hint": "Petunjuk untuk membantu (optional)"
-    },
-    ...
-  ]
-}`,
-
-      email_analysis: `
-1. SETIAP EMAIL HARUS LENGKAP:
-   - From address (bisa spoofed)
-   - Subject line
-   - Body content
-   - Header information
-   - Attachments (jika ada)
-
-2. ANALISIS HARUS COVER:
-   - Identifikasi sender
-   - Analisis SPF/DKIM/DMARC
-   - Red flags dalam content
-   - Psychological tactics digunakan
-   - Rekomendasi action
-
-3. FORMAT RESPONSE:
-{
-  "challenge_title": "Email Security Analysis Challenge",
-  "category": "${selectedCategory}",
-  "type": "email_analysis",
-  "questions": [
-    {
-      "id": "email1",
-      "type": "email_full_analysis",
-      "question": "Analisis email berikut dan identifikasi semua red flags...",
-      "email_data": {
-        "from": "...",
-        "to": "...",
-        "subject": "...",
-        "body": "...",
-        "received_headers": "...",
-        "attachments": [...]
-      },
-      "correct_answer": "Jawaban analisis yang benar",
-      "explanation": "Penjelasan detail tentang setiap red flag",
-      "instructions": ["Langkah analisis..."],
-      "notes": ["Perhatian penting...", "Best practice..."],
-      "cialdini_principle": "...",
-      "learning_objective": "..."
-    }
-  ]
-}`,
-
-      interactive: `
-1. CONVERSATION FLOW:
-   - Attacker membuka dengan teknik social engineering
-   - User diberikan 3-4 pilihan response
-   - AI menilai response dan melanjutkan percakapan
-   - Score berdasarkan awareness level
-
-2. SETIAP NODE HARUS:
-   - Natural dan realistis
-   - Ada tanda-tanda manipulation
-   - Multiple paths based on user choice
-   - Feedback immediate
-
-3. FORMAT RESPONSE:
-{
-  "challenge_title": "Interactive Social Engineering Simulation",
-  "type": "interactive",
-  "questions": [
-    {
-      "id": "conv1",
-      "type": "conversation",
-      "question": "Anda menerima pesan dari 'IT Support'...",
-      "attacker_message": "Pesan dari attacker...",
-      "user_options": [
-        {"text": "Option 1", "susceptibility_impact": -10, "next_id": "conv2"},
-        {"text": "Option 2", "susceptibility_impact": 5, "next_id": "conv3"},
-        {"text": "Option 3", "susceptibility_impact": -15, "next_id": "conv4"}
-      ],
-      "correct_action": "Option yang paling secure",
-      "explanation": "Penjelasan...",
-      "notes": ["Tanda peringatan...", "Best practice..."],
-      "cialdini_principle": "..."
-    }
-  ]
-}`,
-
-      scenario: `
-1. REAL-WORLD SCENARIOS:
-   - Setup konteks yang detail
-   - Multiple decision points
-   - Consequences untuk setiap keputusan
-   - Learning outcomes yang jelas
-
-2. SCENARIO HARUS INCLUDE:
-   - Background/context
-   - Trigger event
-   - Available actions
-   - Consequences (positif dan negatif)
-   - Lessons learned
-
-3. FORMAT RESPONSE:
-{
-  "challenge_title": "Real-World Scenario Challenges",
-  "type": "scenario",
-  "questions": [
-    {
-      "id": "scenario1",
-      "type": "scenario_branching",
-      "question": "Baca skenario berikut...",
-      "scenario": {
-        "background": "...",
-        "trigger": "...",
-        "context": "..."
-      },
-      "available_actions": [
-        {"text": "Action A", "outcome_score": 90, "explanation": "..."},
-        {"text": "Action B", "outcome_score": 40, "explanation": "..."},
-        {"text": "Action C", "outcome_score": 10, "explanation": "..."}
-      ],
-      "correct_action": "...",
-      "explanation": "Penjelasan why this is best...",
-      "notes": ["Konsiderasi...", "Best practice..."],
-      "learning_objective": "..."
-    }
-  ]
-}`,
-    };
-
-    return basePrompt + (typeSpecificPrompts[type] || '') + `
-
-CRITICAL REQUIREMENTS:
-- Generate EXACTLY ${numQuestions} questions
-- Setiap pertanyaan HARUS lengkap dengan instruction dan notes
-- Semua text dalam Indonesian
-- Pastikan JSON valid dan dapat di-parse
-- Fokus pada pembelajaran, bukan hanya testing
-- Include real-world context dan practical tips
-- Variasi difficulty level`;
-  };
-
-  const parseAndValidateChallenge = (responseText, type) => {
-    try {
-      let jsonText = responseText;
-
-      // Clean markdown and extract JSON
-      jsonText = jsonText.replace(/\[TRAINING\]\s*/gi, '').replace(/\[TRAINING MATERIAL\]\s*/gi, '');
-      const codeBlockMatch = jsonText.match(/```(?:json)?\s*([\s\S]*?)```/);
-      if (codeBlockMatch) {
-        jsonText = codeBlockMatch[1].trim();
-      }
-
-      const startMatch = jsonText.search(/[\{\[]/);
-      if (startMatch !== -1) {
-        jsonText = jsonText.substring(startMatch);
-      }
-
-      const endMatch = jsonText.search(/[\}\]][^\}\]]*$/);
-      if (endMatch !== -1) {
-        jsonText = jsonText.substring(0, endMatch + 1);
-      }
-
-      const challengeData = JSON.parse(jsonText.trim());
-
-      // Validate structure
-      if (!challengeData.questions || !Array.isArray(challengeData.questions)) {
-        throw new Error('Invalid challenge structure');
-      }
-
-      if (challengeData.questions.length === 0) {
-        throw new Error('No questions generated');
-      }
-
-      // Ensure each question has required fields and normalize types
-      challengeData.questions.forEach((q, idx) => {
-        if (!q.id) q.id = `q${idx + 1}`;
-        if (!q.type) q.type = 'multiple_choice';
-
-        // Normalize question text
-        if (!q.question) throw new Error(`Question ${idx + 1} missing question text`);
-        if (typeof q.question !== 'string') q.question = JSON.stringify(q.question, null, 2);
-
-        // Ensure explanation is a string
-        if (!q.explanation) q.explanation = 'Penjelasan akan ditampilkan setelah Anda menjawab.';
-        if (typeof q.explanation !== 'string') q.explanation = JSON.stringify(q.explanation, null, 2);
-
-        // Normalize content (could be object for scenarios/emails)
-        if (q.content && typeof q.content !== 'string') {
-          try {
-            q.content = typeof q.content === 'object' ? JSON.stringify(q.content, null, 2) : String(q.content);
-          } catch (e) {
-            q.content = String(q.content);
-          }
-        }
-
-        // Normalize instructions/notes/learning objective
-        if (!q.instructions) q.instructions = [];
-        q.instructions = q.instructions.map(instr => (typeof instr === 'string' ? instr : JSON.stringify(instr)));
-
-        if (!q.notes) q.notes = [];
-        q.notes = q.notes.map(n => (typeof n === 'string' ? n : JSON.stringify(n)));
-
-        if (!q.learning_objective) q.learning_objective = 'Belajar tentang social engineering tactics';
-        if (typeof q.learning_objective !== 'string') q.learning_objective = JSON.stringify(q.learning_objective);
-
-        // Normalize options: ensure array of { text }
-        if (q.options && Array.isArray(q.options)) {
-          q.options = q.options.map(opt => {
-            if (typeof opt === 'string') return { text: opt };
-            if (opt && typeof opt === 'object') {
-              if (opt.text) return opt;
-              // try common keys
-              const text = opt.label || opt.choice || opt.answer || JSON.stringify(opt);
-              return { ...opt, text };
-            }
-            return { text: String(opt) };
-          });
-        }
-
-        // Normalize correct_answer to the option text (if options present)
-        if (q.correct_answer !== undefined && q.correct_answer !== null) {
-          const normalizeToText = (ans) => {
-            if (typeof ans === 'number') {
-              if (q.options && q.options[ans]) return q.options[ans].text;
-              return String(ans);
-            }
-            if (typeof ans === 'string') {
-              const a = ans.trim();
-              // letter -> index (A,B,C)
-              if (/^[A-Za-z]$/.test(a) && q.options) {
-                const idx = a.toUpperCase().charCodeAt(0) - 65;
-                if (q.options[idx]) return q.options[idx].text;
-              }
-              // numeric string
-              if (/^\d+$/.test(a) && q.options) {
-                const idx = parseInt(a, 10) - 1;
-                if (q.options[idx]) return q.options[idx].text;
-              }
-              // try to match option text
-              if (q.options) {
-                const found = q.options.find(o => String(o.text).trim().toLowerCase() === a.toLowerCase());
-                if (found) return found.text;
-              }
-              return a;
-            }
-            return String(ans);
-          };
-
-          if (Array.isArray(q.correct_answer)) {
-            q.correct_answer = q.correct_answer.map(a => normalizeToText(a));
-          } else {
-            q.correct_answer = normalizeToText(q.correct_answer);
-          }
-        } else {
-          // mark explicit no correct answer
-          q.correct_answer = null;
-        }
-
-        // Normalize email_data fields
-        if (q.email_data && typeof q.email_data === 'object') {
-          const ed = q.email_data;
-          ['from', 'to', 'subject', 'body'].forEach(k => {
-            if (ed[k] && typeof ed[k] !== 'string') ed[k] = JSON.stringify(ed[k], null, 2);
-          });
-        }
-      });
-
-      console.log('✅ Challenge validated:', challengeData);
-      return challengeData;
-    } catch (error) {
-      console.error('❌ Parse error:', error);
-      throw error;
-    }
-  };
-
-  // Helper to safely render values that might be objects
-  const renderSafe = (val) => {
-    if (val === null || val === undefined) return '';
-    if (typeof val === 'object') return JSON.stringify(val, null, 2);
-    return String(val);
-  };
-
-  const initializeChatbot = useCallback(() => {
-    if (generatedChallenge && chatHistory.length === 0) {
-      const firstQuestion = generatedChallenge.questions[0];
-      setChatHistory([
+      "challenge_title": "Creative Title Here",
+      "questions": [
         {
-          type: 'assistant',
-          content: firstQuestion.question,
-          question: firstQuestion,
-          timestamp: new Date()
+          "id": "q1",
+          "type": "multiple_choice", 
+          "question": "Detailed scenario description or question text...",
+          "options": [{"text": "Option A"}, {"text": "Option B"}, {"text": "Option C"}, {"text": "Option D"}],
+          "correct_answer": "Option A", 
+          "explanation": "Detailed educational explanation of why A is correct and others are wrong.",
+          "cialdini_principle": "Authority/Urgency/etc",
+          "learning_objective": "Key takeaway"
         }
-      ]);
-      setConversationState('question');
+      ]
     }
-  }, [generatedChallenge, chatHistory.length]);
-
-  useEffect(() => {
-    if (generatedChallenge) {
-      initializeChatbot();
-    }
-  }, [generatedChallenge, initializeChatbot]);
+    
+    REQUIREMENTS:
+    - Generate exactly ${numQuestions} questions.
+    - Difficulty: ${difficulty} (Adjust complexity of scenarios accordingly).
+    - For 'email_analysis' type, include an 'email_data' object in the question with {from, subject, body, headers}.
+    - Make scenarios realistic and modern (2024-2025 era threats).
+    `;
+  };
 
   const submitAnswer = async () => {
-    if (!currentAnswer.trim()) return;
+    if (!currentAnswer.trim() || isEvaluating) return;
 
     const currentQuestion = generatedChallenge.questions[currentQuestionIdx];
     setIsEvaluating(true);
-    setConversationState('evaluating');
 
-    // Add user message to chat
+    // Update Chat UI immediately
     const newHistory = [
       ...chatHistory,
-      {
-        type: 'user',
-        content: currentAnswer,
-        timestamp: new Date()
-      }
+      { type: 'user', content: currentAnswer, timestamp: new Date() }
     ];
+    setChatHistory(newHistory);
+    setCurrentAnswer(''); // Clear input
 
     try {
-      // Call AI to evaluate the answer
       const token = localStorage.getItem('soceng_token');
-      const evaluationPrompt = `
-You are evaluating a social engineering simulation answer. 
-Question: ${currentQuestion.question}
-User Answer: ${currentAnswer}
-Expected/Correct Answer: ${currentQuestion.correct_answer || 'Open-ended - provide feedback'}
-Explanation: ${currentQuestion.explanation}
 
-Provide brief, encouraging feedback (2-3 sentences max) on their answer. Then provide a BRIEF insight about the scenario.
-Format your response as:
-FEEDBACK: [feedback here]
-INSIGHT: [one key learning point]
-NEXT: [Should they proceed? YES or NO]`;
+      // Use AI to evaluate the answer (works for both MCQ and Open Text)
+      const evalPrompt = `
+        Evaluate this answer for a security training scenario.
+        Question: ${currentQuestion.question}
+        User Answer: ${currentAnswer}
+        Correct Answer/Goal: ${currentQuestion.correct_answer || "Safe security practice"}
+        Explanation Context: ${currentQuestion.explanation}
+
+        Respond in JSON:
+        {
+          "isCorrect": boolean,
+          "feedback": "Brief, encouraging feedback (max 2 sentences)",
+          "insight": "One key security insight",
+          "score": 0-100 (confidence of correctness)
+        }
+        Lang: ${language}
+        `;
 
       const response = await axios.post(
         `${API}/llm/generate`,
-        {
-          prompt: evaluationPrompt,
-          context: { type: 'evaluation', challenge_type: selectedChallengeType }
-        },
+        { prompt: evalPrompt, provider: selectedProvider },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      const responseText = response.data.generated_text;
-      const feedbackMatch = responseText.match(/FEEDBACK:\s*(.+?)(?=INSIGHT:|$)/s);
-      const insightMatch = responseText.match(/INSIGHT:\s*(.+?)(?=NEXT:|$)/s);
-      const nextMatch = responseText.match(/NEXT:\s*(.+?)$/s);
+      let evalData = { isCorrect: false, feedback: "Could not evaluate.", insight: "", score: 0 };
+      try {
+        evalData = typeof response.data.generated_text === 'object'
+          ? response.data.generated_text
+          : JSON.parse(response.data.generated_text.replace(/```json/g, '').replace(/```/g, '').trim());
+      } catch (e) {
+        // Fallback for parsing error
+        evalData.feedback = response.data.generated_text;
+        evalData.isCorrect = currentAnswer.toLowerCase().includes((currentQuestion.correct_answer || "").toLowerCase());
+      }
 
-      const feedback = feedbackMatch ? feedbackMatch[1].trim() : 'Jawaban dicatat.';
-      const insight = insightMatch ? insightMatch[1].trim() : '';
-      const shouldProceed = nextMatch ? nextMatch[1].includes('YES') : true;
+      // Store result
+      const newEvalResults = { ...evaluationResults, [currentQuestion.id]: evalData };
+      setEvaluationResults(newEvalResults);
+      setUserAnswers({ ...userAnswers, [currentQuestion.id]: currentAnswer });
 
-      // Determine if AI considers it correct based on feedback
-      const isCorrect = feedback.toLowerCase().includes('benar') || 
-                        feedback.toLowerCase().includes('tepat') || 
-                        feedback.toLowerCase().includes('correct') ||
-                        feedback.toLowerCase().includes('good');
-
-      newHistory.push({
+      // Add AI response to chat
+      const responseMsg = {
         type: 'assistant',
-        content: `${feedback}\n\n💡 ${insight}`,
+        content: `${evalData.feedback}\n\n💡 ${evalData.insight}`,
         isEvaluation: true,
+        isCorrect: evalData.isCorrect,
         timestamp: new Date()
-      });
+      };
 
-      setChatHistory(newHistory);
-      setUserAnswers({
-        ...userAnswers,
-        [currentQuestion.id]: currentAnswer
-      });
+      setChatHistory(prev => [...prev, responseMsg]);
 
-      // Store evaluation result from AI
-      setEvaluationResults({
-        ...evaluationResults,
-        [currentQuestion.id]: {
-          isCorrect,
-          feedback,
-          insight
-        }
-      });
-
-      // Move to next question or finish
-      if (currentQuestionIdx < generatedChallenge.questions.length - 1 && shouldProceed) {
-        setTimeout(() => {
+      // Proceed to next question after short delay
+      setTimeout(() => {
+        if (currentQuestionIdx < generatedChallenge.questions.length - 1) {
           const nextIdx = currentQuestionIdx + 1;
           setCurrentQuestionIdx(nextIdx);
-          const nextQuestion = generatedChallenge.questions[nextIdx];
-          setChatHistory(prev => [
-            ...prev,
-            {
-              type: 'assistant',
-              content: nextQuestion.question,
-              question: nextQuestion,
-              timestamp: new Date()
-            }
-          ]);
-          setCurrentAnswer('');
-          setConversationState('question');
-        }, 1500);
-      } else if (currentQuestionIdx >= generatedChallenge.questions.length - 1) {
-        setTimeout(() => {
-          setShowResults(true);
-          calculateAndSubmitResults();
-        }, 1500);
-      } else {
-        setConversationState('question');
-      }
+          setChatHistory(prev => [...prev, {
+            type: 'assistant',
+            content: generatedChallenge.questions[nextIdx].question,
+            question: generatedChallenge.questions[nextIdx],
+            timestamp: new Date()
+          }]);
+        } else {
+          finishChallenge(newEvalResults);
+        }
+      }, 1500);
+
     } catch (error) {
-      console.error('Error evaluating answer:', error);
-      newHistory.push({
-        type: 'assistant',
-        content: 'Ada error dalam evaluasi. Silakan lanjut ke soal berikutnya.',
-        timestamp: new Date()
-      });
-      setChatHistory(newHistory);
-      setConversationState('question');
+      console.error("Evaluation failed", error);
+      toast.error("Evaluation failed. Please try answering again.");
     } finally {
       setIsEvaluating(false);
     }
   };
 
-  const handleNextQuestion = () => {
-    if (currentQuestionIdx < generatedChallenge.questions.length - 1) {
-      setCurrentQuestionIdx(currentQuestionIdx + 1);
-    }
-  };
-
-  const handlePreviousQuestion = () => {
-    if (currentQuestionIdx > 0) {
-      setCurrentQuestionIdx(currentQuestionIdx - 1);
-    }
-  };
-
-  function stringSimilarity(a, b) {
-    if (!a || !b) return 0;
-    a = a.trim().toLowerCase();
-    b = b.trim().toLowerCase();
-    if (a === b) return 1;
-    // Levenshtein distance
-    const matrix = [];
-    for (let i = 0; i <= b.length; i++) {
-      matrix[i] = [i];
-    }
-    for (let j = 0; j <= a.length; j++) {
-      matrix[0][j] = j;
-    }
-    for (let i = 1; i <= b.length; i++) {
-      for (let j = 1; j <= a.length; j++) {
-        if (b.charAt(i - 1) === a.charAt(j - 1)) {
-          matrix[i][j] = matrix[i - 1][j - 1];
-        } else {
-          matrix[i][j] = Math.min(
-            matrix[i - 1][j - 1] + 1, // substitution
-            matrix[i][j - 1] + 1,     // insertion
-            matrix[i - 1][j] + 1      // deletion
-          );
-        }
-      }
-    }
-    const distance = matrix[b.length][a.length];
-    const maxLen = Math.max(a.length, b.length);
-    return maxLen === 0 ? 1 : 1 - distance / maxLen;
-  }
-
-  const calculateAndSubmitResults = async () => {
-    if (!generatedChallenge) return;
-
+  const finishChallenge = async (finalEvaluations) => {
+    // Calculate Score
     let correctCount = 0;
-    let scoredQuestions = 0;
-    let similarityScores = {};
-
-    generatedChallenge.questions.forEach(q => {
-      const userAnswer = userAnswers[q.id];
-      if (q.correct_answer !== null && q.correct_answer !== undefined) {
-        scoredQuestions++;
-        
-        // Use stored evaluation result from AI (for chatbot flow)
-        const aiEval = evaluationResults[q.id];
-        if (aiEval) {
-          // Use AI's evaluation result
-          if (aiEval.isCorrect) correctCount++;
-          similarityScores[q.id] = aiEval.isCorrect ? 1 : 0;
-        } else if (userAnswer) {
-          // Fallback: if no AI evaluation stored, use string matching
-          const normalize = v => (v === null || v === undefined) ? '' : String(v).trim().toLowerCase();
-          const ua = normalize(userAnswer);
-          let correctVals = [];
-          if (Array.isArray(q.correct_answer)) {
-            correctVals = q.correct_answer.map(c => normalize(c));
-          } else {
-            correctVals = [normalize(q.correct_answer)];
-          }
-          // MCQ: exact match
-          if (q.options && q.options.length > 0) {
-            if (correctVals.includes(ua)) correctCount++;
-            similarityScores[q.id] = correctVals.includes(ua) ? 1 : 0;
-          } else {
-            // Essay: use similarity
-            let maxSim = 0;
-            correctVals.forEach(cv => {
-              const sim = stringSimilarity(ua, cv);
-              if (sim > maxSim) maxSim = sim;
-            });
-            similarityScores[q.id] = maxSim;
-            if (maxSim >= 0.7) correctCount++; // threshold for 'correct'
-          }
-        } else {
-          similarityScores[q.id] = 0;
-        }
-      }
+    Object.values(finalEvaluations).forEach(ev => {
+      if (ev.isCorrect || ev.score > 70) correctCount++;
     });
 
-    const score = scoredQuestions > 0 ? Math.round((correctCount / scoredQuestions) * 100) : 0;
+    const score = Math.round((correctCount / generatedChallenge.questions.length) * 100);
     setFinalScore(score);
     setShowResults(true);
-    // Save similarity scores for review
-    window._aiChallengeSimilarityScores = similarityScores;
 
-    // Show toast feedback
-    if (score >= 80) {
-      toast.success('🏆 Excellent! Anda menunjukkan pemahaman yang kuat tentang social engineering tactics!');
-    } else if (score >= 60) {
-      toast('🎯 Good job! Review penjelasan untuk memperkuat pemahaman Anda.');
-    } else {
-      toast.error('💡 Keep learning! Pelajari setiap penjelasan dan coba lagi untuk hasil lebih baik.');
-    }
-
-    // Save to history
-    await saveToHistory(score, correctCount);
-  };
-
-  const saveToHistory = async (score, correctCount) => {
-    setSaving(true);
+    // Save History
     try {
       const token = localStorage.getItem('soceng_token');
-
-      // Create a simulation record for history
-      const simulationData = {
+      await axios.post(`${API}/simulations`, {
         simulation_type: 'ai_challenge',
-        type: 'ai_challenge', // For backwards compatibility
         challenge_type: selectedChallengeType,
         category: selectedCategory,
         difficulty: difficulty,
-        total_questions: generatedChallenge.questions.length,
         score: score,
+        total_questions: generatedChallenge.questions.length,
         correct_answers: correctCount,
         answers: userAnswers,
-        evaluation_results: evaluationResults, // Include AI evaluation results
-        challenge_data: generatedChallenge,
-        completed_at: new Date().toISOString(),
-        status: 'completed'
-      };
-
-      await axios.post(`${API}/simulations`, simulationData, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      toast.success('✅ Challenge hasil disimpan ke history!');
-    } catch (error) {
-      console.error('Failed to save challenge', error);
-      toast.error('Failed to save challenge history');
-    } finally {
-      setSaving(false);
+        title: generatedChallenge.challenge_title,
+        status: 'completed',
+        completed_at: new Date().toISOString()
+      }, { headers: { Authorization: `Bearer ${token}` } });
+    } catch (e) {
+      console.error("Failed to save history", e);
     }
   };
 
-  const downloadReport = () => {
-    const report = {
-      title: generatedChallenge.challenge_title,
-      category: selectedCategory,
-      type: selectedChallengeType,
-      difficulty: difficulty,
-      date: new Date().toISOString(),
-      score: finalScore,
-      results: generatedChallenge.questions.map(q => ({
-        question: q.question,
-        userAnswer: userAnswers[q.id],
-        correctAnswer: q.correct_answer,
-        isCorrect: userAnswers[q.id] === q.correct_answer,
-        explanation: q.explanation
-      }))
-    };
-
-    const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `challenge_report_${Date.now()}.json`;
-    a.click();
+  const renderContentSafe = (content) => {
+    if (typeof content === 'object') return JSON.stringify(content, null, 2);
+    return content;
   };
 
-  const resetChallenge = () => {
-    setGeneratedChallenge(null);
-    setUserAnswers({});
-    setQuestionFeedback({});
-    setCurrentQuestionIdx(0);
-    setShowResults(false);
-    setShowDetailedExplanation({});
-  };
+  // --- RENDER HELPERS ---
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="w-8 h-8 animate-spin" />
-      </div>
-    );
+    return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="w-10 h-10 animate-spin text-primary" /></div>;
   }
 
   if (!llmConfigured) {
     return (
-      <div className="max-w-2xl mx-auto p-6">
-        <Card className="p-8 text-center">
-          <AlertTriangle className="w-12 h-12 mx-auto mb-4 text-yellow-500" />
-          <h2 className="text-2xl font-bold mb-2">LLM Not Configured</h2>
-          <p className="text-gray-600 mb-4">
-            Anda perlu mengkonfigurasi LLM API key terlebih dahulu untuk menggunakan AI Challenge.
-          </p>
-          <Button onClick={() => navigate('/settings')} className="w-full">
-            Go to Settings → LLM Configuration
-          </Button>
-        </Card>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] p-6 text-center">
+        <AlertTriangle className="w-16 h-16 text-yellow-500 mb-4" />
+        <h1 className="text-3xl font-bold mb-2">AI Not Configured</h1>
+        <p className="text-muted-foreground mb-6 max-w-md">To use the AI Challenge Generator, you need to configure a free Google Gemini API key (or other provider) in the settings.</p>
+        <Button onClick={() => navigate('/settings')}>Go to Settings</Button>
       </div>
     );
   }
 
-  // Configuration Screen
-  if (!generatedChallenge && !showResults) {
-    return (
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">🎓 AI Challenge Generator</h1>
-          <p className="text-gray-600">Create powerful, detailed social engineering challenges for comprehensive training</p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Configuration Panel */}
-          <div className="lg:col-span-1">
-            <Card className="p-6 sticky top-6">
-              <h3 className="text-lg font-semibold mb-4">Configure Challenge</h3>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Challenge Type</label>
-                  <Select value={selectedChallengeType} onValueChange={setSelectedChallengeType}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(challengeTypes).map(([key, config]) => (
-                        <SelectItem key={key} value={key}>
-                          {config.icon} {config.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Category</label>
-                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="phishing">📧 Phishing</SelectItem>
-                      <SelectItem value="pretexting">🎭 Pretexting</SelectItem>
-                      <SelectItem value="baiting">🪤 Baiting</SelectItem>
-                      <SelectItem value="tailgating">🚪 Tailgating</SelectItem>
-                      <SelectItem value="vishing">☎️ Vishing</SelectItem>
-                      <SelectItem value="spear_phishing">🎯 Spear Phishing</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Difficulty</label>
-                  <Select value={difficulty} onValueChange={setDifficulty}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="beginner">🟢 Beginner</SelectItem>
-                      <SelectItem value="intermediate">🟡 Intermediate</SelectItem>
-                      <SelectItem value="advanced">🔴 Advanced</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Language</label>
-                  <Select value={language} onValueChange={setLanguage}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="indonesian">🇮🇩 Indonesian</SelectItem>
-                      <SelectItem value="english">🇬🇧 English</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Number of Questions: {numQuestions}
-                  </label>
-                  <input
-                    type="range"
-                    min="3"
-                    max="20"
-                    value={numQuestions}
-                    onChange={(e) => setNumQuestions(parseInt(e.target.value))}
-                    className="w-full"
-                  />
-                </div>
-
-                <Button
-                  onClick={generateChallenge}
-                  disabled={generating}
-                  className="w-full"
-                >
-                  {generating ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Zap className="w-4 h-4 mr-2" />
-                      Generate Challenge
-                    </>
-                  )}
-                </Button>
-              </div>
-            </Card>
-          </div>
-
-          {/* Challenge Type Info */}
-          <div className="lg:col-span-2">
-            <Card className="p-6">
-              <div className="flex items-start mb-4">
-                <span className="text-4xl mr-3">
-                  {challengeTypes[selectedChallengeType].icon}
-                </span>
-                <div>
-                  <h3 className="text-2xl font-bold">
-                    {challengeTypes[selectedChallengeType].label}
-                  </h3>
-                  <p className="text-gray-600 mt-1">
-                    {challengeTypes[selectedChallengeType].description}
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-blue p-4 rounded-lg mb-6">
-                <h4 className="font-semibold mb-3 flex items-center">
-                  <BookOpen className="w-4 h-4 mr-2" />
-                  Instructions for This Challenge Type:
-                </h4>
-                <ol className="space-y-2 text-sm">
-                  {challengeTypes[selectedChallengeType].instructions.map((instr, idx) => (
-                    <li key={idx} className="flex">
-                      <span className="font-semibold mr-3 text-blue-600">{idx + 1}.</span>
-                      <span>{instr}</span>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {challengeTypes[selectedChallengeType].formats.map((format) => (
-                  <div key={format} className="bg-gray p-3 rounded flex items-center">
-                    <CheckCircle2 className="w-4 h-4 text-green-600 mr-2 flex-shrink-0" />
-                    <span className="text-sm capitalize">{format.replace(/_/g, ' ')}</span>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Challenge Display Screen - Chatbot Style
-  if (generatedChallenge && !showResults) {
-    const question = generatedChallenge.questions[currentQuestionIdx];
-    const hasOptions = question.options && question.options.length > 0;
-
-    return (
-      <div className="max-w-3xl mx-auto p-6 h-screen flex flex-col">
-        {/* Header */}
-        <div className="mb-4">
-          <h2 className="text-2xl font-bold mb-2">{generatedChallenge.challenge_title}</h2>
-          <div className="flex items-center justify-between">
-            <Badge variant="outline">
-              {currentQuestionIdx + 1} / {generatedChallenge.questions.length}
-            </Badge>
-            <div className="w-40 bg-gray-300 rounded-full h-2">
-              <div
-                className="bg-blue-600 h-2 rounded-full transition-all"
-                style={{ width: `${((currentQuestionIdx + 1) / generatedChallenge.questions.length) * 100}%` }}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Chat Container */}
-        <div className="flex-1 overflow-y-auto mb-4 space-y-4 bg-gradient-to-b from-gray-900 to-gray-800 p-4 rounded-lg">
-          {chatHistory.map((msg, idx) => (
-            <div key={idx} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div
-                className={`max-w-2xl px-4 py-3 rounded-lg ${
-                  msg.type === 'user'
-                    ? 'bg-blue-600 text-white rounded-br-none'
-                    : 'bg-gray-700 text-gray-100 rounded-bl-none'
-                }`}
-              >
-                <p className="whitespace-pre-wrap">{msg.content}</p>
-                {msg.question && (
-                  <div className="mt-3 pt-3 border-t border-gray-600">
-                    {/* Question metadata */}
-                    {msg.question.email_data && (
-                      <div className="text-sm space-y-1 mt-2">
-                        <p><strong>From:</strong> {renderSafe(msg.question.email_data.from)}</p>
-                        <p><strong>Subject:</strong> {renderSafe(msg.question.email_data.subject)}</p>
-                        {msg.question.email_data.body && (
-                          <div className="mt-2 p-2 bg-gray-600 rounded text-xs">
-                            <p className="whitespace-pre-wrap">{renderSafe(msg.question.email_data.body)}</p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    {msg.question.content && (
-                      <div className="text-sm mt-2 p-2 bg-gray-600 rounded">
-                        <p className="whitespace-pre-wrap">{renderSafe(msg.question.content)}</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-          {isEvaluating && (
-            <div className="flex justify-start">
-              <div className="bg-gray-700 text-gray-100 px-4 py-3 rounded-lg rounded-bl-none">
-                <Loader2 className="w-5 h-5 animate-spin" />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Answer Input - MCQ Options */}
-        {hasOptions && (
-          <div className="space-y-2 mb-4">
-            {question.options.map((option, idx) => (
-              <button
-                key={idx}
-                onClick={() => {
-                  setCurrentAnswer((option && option.text) ? option.text : option);
-                }}
-                disabled={isEvaluating}
-                className={`w-full p-3 rounded-lg border-2 transition-all text-left ${
-                  currentAnswer === ((option && option.text) ? option.text : option)
-                    ? 'border-cyan-400 bg-cyan-500 bg-opacity-20 text-white'
-                    : 'border-gray-500 hover:border-gray-400 text-gray-100'
-                }`}
-              >
-                <span className="font-semibold">{String.fromCharCode(65 + idx)}.</span>{' '}
-                {renderSafe((option && option.text) ? option.text : option)}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Answer Input - Open-ended */}
-        {!hasOptions && (
-          <div className="mb-4">
-            <textarea
-              value={currentAnswer}
-              onChange={(e) => setCurrentAnswer(e.target.value)}
-              placeholder="Tulis analisis atau jawaban Anda di sini..."
-              disabled={isEvaluating}
-              className="w-full p-3 border-2 border-gray-600 rounded-lg bg-gray-800 text-white placeholder-gray-500 focus:border-cyan-400 focus:outline-none"
-              rows="3"
-            />
-          </div>
-        )}
-
-        {/* Submit Button */}
-        <Button
-          onClick={submitAnswer}
-          disabled={!currentAnswer.trim() || isEvaluating}
-          className="w-full"
-        >
-          {isEvaluating ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin mr-2" />
-              AI sedang menilai...
-            </>
-          ) : (
-            <>
-              Submit Jawaban
-              <ChevronRight className="w-4 h-4 ml-2" />
-            </>
-          )}
-        </Button>
-      </div>
-    );
-  }  // Results Screen
+  // --- RESULTS SCREEN ---
   if (showResults) {
-    const totalQuestions = generatedChallenge.questions.length;
-    const answeredQuestions = Object.keys(userAnswers).length;
-    
-    // Use AI evaluation results for correctness
-    const correctAnswers = Object.keys(userAnswers).filter(qId => {
-      const evalResult = evaluationResults[qId];
-      return evalResult && evalResult.isCorrect;
-    }).length;
-
     return (
-      <div className="max-w-4xl mx-auto p-6">
-        {/* Score Card */}
-        <Card className="mb-6 p-8 text-center bg-gray from-blue-50 to-purple-50">
-          <Award className="w-16 h-16 mx-auto mb-4 text-yellow-500" />
-          <h2 className="text-4xl font-bold mb-2">{finalScore}%</h2>
-          <p className="text-xl text-gray-600 mb-6">
-            You answered {correctAnswers} out of {totalQuestions} questions correctly
-          </p>
-
-          {finalScore >= 80 && (
-            <Badge className="mb-4 text-lg py-2">🏆 Outstanding Performance!</Badge>
-          )}
-          {finalScore >= 60 && finalScore < 80 && (
-            <Badge className="mb-4 text-lg py-2">✅ Good Job!</Badge>
-          )}
-          {finalScore < 60 && (
-            <Badge className="mb-4 text-lg py-2">📚 Keep Learning</Badge>
-          )}
+      <div className="container mx-auto max-w-4xl p-6 space-y-8 animate-in fade-in duration-500">
+        <Card className="text-center p-10 border-primary/20 bg-primary/5">
+          <Award className={`w-20 h-20 mx-auto mb-4 ${finalScore > 70 ? 'text-yellow-400' : 'text-gray-400'}`} />
+          <h1 className="text-5xl font-bold mb-2">{finalScore}%</h1>
+          <p className="text-xl text-muted-foreground">Challenge Complete!</p>
+          <div className="flex justify-center gap-4 mt-8">
+            <Button variant="outline" onClick={() => setShowResults(false) || setGeneratedChallenge(null)}>
+              <RotateCcw className="w-4 h-4 mr-2" /> Try Again
+            </Button>
+            <Button onClick={() => navigate('/simulations')}>View History</Button>
+          </div>
         </Card>
 
-        {/* Results Summary */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <Card className="p-4 text-center">
-            <div className="text-3xl font-bold text-blue-600">{totalQuestions}</div>
-            <div className="text-sm text-gray-600">Total Questions</div>
-          </Card>
-          <Card className="p-4 text-center">
-            <div className="text-3xl font-bold text-green-600">{correctAnswers}</div>
-            <div className="text-sm text-gray-600">Correct Answers</div>
-          </Card>
-          <Card className="p-4 text-center">
-            <div className="text-3xl font-bold text-red-600">{totalQuestions - correctAnswers}</div>
-            <div className="text-sm text-gray-600">To Review</div>
-          </Card>
-        </div>
-
-        {/* Detailed Review */}
-        <Card className="mb-6 p-6">
-          <h3 className="text-2xl font-bold mb-4">Detailed Review</h3>
-          <div className="space-y-4">
-            {generatedChallenge.questions.map((question) => {
-              const userAnswer = userAnswers[question.id];
-              const evalResult = evaluationResults[question.id];
-              const isCorrect = evalResult ? evalResult.isCorrect : false;
-              
-              return (
-                <div key={question.id} className={`p-4 rounded-lg border-l-4 ${isCorrect ? 'bg-green border-green-500' : 'bg-red border-red-500'}`}>
-                  <div className="flex items-start mb-2">
-                    {isCorrect ? (
-                      <CheckCircle2 className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
-                    ) : (
-                      <XCircle className="w-5 h-5 text-red-600 mr-2 flex-shrink-0 mt-0.5" />
-                    )}
-                    <div className="flex-1">
-                      <p className="font-semibold">{question.question}</p>
-                      <p className="text-sm mt-1">
-                        <span className={isCorrect ? 'text-green-700' : 'text-red-700'}>Your answer:</span> {userAnswer}
-                      </p>
-                      {evalResult && (
-                        <p className="text-xs mt-1 text-blue-700 italic">{evalResult.feedback}</p>
-                      )}
+        <div className="space-y-6">
+          <h2 className="text-2xl font-bold">Analysis Breakdown</h2>
+          {generatedChallenge.questions.map((q, idx) => {
+            const isCorrect = evaluationResults[q.id]?.isCorrect;
+            return (
+              <Card key={idx} className={`p-6 border-l-4 ${isCorrect ? 'border-l-green-500' : 'border-l-red-500'}`}>
+                <div className="flex gap-4">
+                  <div className="mt-1">
+                    {isCorrect ? <CheckCircle2 className="text-green-500" /> : <XCircle className="text-red-500" />}
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <h3 className="font-semibold text-lg">{q.question}</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mt-3 bg-muted/50 p-3 rounded-lg">
+                      <div>
+                        <span className="font-bold block text-muted-foreground">Your Answer:</span>
+                        <span className={isCorrect ? 'text-green-400' : 'text-red-400'}>{userAnswers[q.id]}</span>
+                      </div>
+                      <div>
+                        <span className="font-bold block text-muted-foreground">AI Insight:</span>
+                        <span className="text-blue-400">{evaluationResults[q.id]?.feedback}</span>
+                      </div>
+                    </div>
+                    <div className="mt-2 text-sm text-muted-foreground">
+                      <span className="font-semibold text-primary">Lesson:</span> {q.explanation}
                     </div>
                   </div>
-                  <div className="bg-gray p-3 rounded mt-2 text-sm">
-                    <p className="font-semibold mb-2">Explanation:</p>
-                    <p>{question.explanation}</p>
-                    {question.cialdini_principle && (
-                      <p className="mt-2"><span className="font-semibold">Cialdini Principle:</span> {question.cialdini_principle}</p>
-                    )}
-                  </div>
                 </div>
-              );
-            })}
-          </div>
-        </Card>
-
-        {/* Actions */}
-        <div className="flex gap-3 justify-center">
-          <Button variant="outline" onClick={downloadReport}>
-            <Download className="w-4 h-4 mr-2" />
-            Download Report
-          </Button>
-          <Button variant="outline" onClick={resetChallenge}>
-            <RotateCcw className="w-4 h-4 mr-2" />
-            Try Another Challenge
-          </Button>
-          <Button onClick={() => navigate('/simulations')}>
-            View Challenge History
-            <ChevronRight className="w-4 h-4 ml-2" />
-          </Button>
+              </Card>
+            );
+          })}
         </div>
       </div>
     );
   }
+
+  // --- GAMEPLAY SCREEN ---
+  if (generatedChallenge) {
+    const q = generatedChallenge.questions[currentQuestionIdx];
+    return (
+      <div className="flex flex-col h-[calc(100vh-4rem)] max-w-5xl mx-auto p-4 md:p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-bold truncate max-w-md">{generatedChallenge.challenge_title}</h2>
+          <Badge variant="outline" className="text-lg px-4 py-1">
+            {currentQuestionIdx + 1} / {generatedChallenge.questions.length}
+          </Badge>
+        </div>
+
+        {/* Chat Window */}
+        <ScrollArea className="flex-1 bg-card/50 border rounded-xl p-4 mb-4 backdrop-blur-sm">
+          <div className="space-y-6">
+            {chatHistory.map((msg, idx) => (
+              <div key={idx} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[85%] md:max-w-[75%] p-4 rounded-2xl shadow-sm ${msg.type === 'user'
+                  ? 'bg-primary text-primary-foreground rounded-tr-none'
+                  : 'bg-muted rounded-tl-none border border-border'
+                  }`}>
+                  {msg.type === 'assistant' && msg.isEvaluation && (
+                    <div className={`mb-2 font-bold flex items-center gap-2 ${msg.isCorrect ? 'text-green-500' : 'text-red-400'}`}>
+                      {msg.isCorrect ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                      {msg.isCorrect ? 'Correct Analysis' : 'Vulnerable Response'}
+                    </div>
+                  )}
+
+                  <div className="whitespace-pre-wrap leading-relaxed">{msg.content}</div>
+
+                  {/* Embedded Data Display */}
+                  {msg.question?.email_data && (
+                    <div className="mt-4 bg-background/50 p-3 rounded text-sm font-mono border border-border/50">
+                      <div className="border-b border-border/50 pb-2 mb-2">
+                        <div><span className="text-muted-foreground">From:</span> {msg.question.email_data.from}</div>
+                        <div><span className="text-muted-foreground">Subject:</span> {msg.question.email_data.subject}</div>
+                      </div>
+                      <div className="text-foreground/90">{renderContentSafe(msg.question.email_data.body)}</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+            {isEvaluating && (
+              <div className="flex justify-start">
+                <div className="bg-muted p-4 rounded-2xl rounded-tl-none flex items-center gap-3">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span className="text-sm text-muted-foreground animate-pulse">Analyzing your response...</span>
+                </div>
+              </div>
+            )}
+            <div ref={chatEndRef} />
+          </div>
+        </ScrollArea>
+
+        {/* Input Area */}
+        <div className="mt-auto">
+          {q.options && q.options.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {q.options.map((opt, i) => (
+                <Button
+                  key={i}
+                  variant="outline"
+                  className="h-auto py-4 justify-start text-left hover:bg-primary/10 hover:border-primary transition-all"
+                  onClick={() => {
+                    setCurrentAnswer(opt.text);
+                    // Small delay to allow state update before submit
+                    setTimeout(() => submitAnswer(), 0);
+                  }}
+                  disabled={isEvaluating}
+                >
+                  <span className="bg-primary/20 text-primary w-6 h-6 rounded flex items-center justify-center mr-3 text-xs font-bold shrink-0">
+                    {String.fromCharCode(65 + i)}
+                  </span>
+                  {opt.text}
+                </Button>
+              ))}
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <textarea
+                value={currentAnswer}
+                onChange={e => setCurrentAnswer(e.target.value)}
+                placeholder="Type your analysis here..."
+                className="flex-1 bg-background border rounded-lg p-3 min-h-[80px] focus:ring-2 ring-primary/50 outline-none resize-none"
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    submitAnswer();
+                  }
+                }}
+              />
+              <Button
+                onClick={submitAnswer}
+                disabled={!currentAnswer.trim() || isEvaluating}
+                className="h-auto w-24"
+              >
+                {isEvaluating ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChevronRight className="w-6 h-6" />}
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // --- CONFIG SCREEN ---
+  return (
+    <div className="container mx-auto max-w-6xl p-6">
+      <div className="flex flex-col md:flex-row gap-8 items-start">
+
+        {/* Left: Config */}
+        <div className="w-full md:w-1/3 space-y-6 sticky top-6">
+          <div>
+            <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">
+              AI Challenge
+            </h1>
+            <p className="text-muted-foreground mt-2">
+              {t('Generate custom social engineering scenarios powered by Gemini AI.')}
+            </p>
+          </div>
+
+          <Card className="p-6 space-y-5 border-primary/20 shadow-lg shadow-primary/5">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Topic</label>
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="phishing">Phishing</SelectItem>
+                  <SelectItem value="pretexting">Pretexting</SelectItem>
+                  <SelectItem value="baiting">Baiting</SelectItem>
+                  <SelectItem value="vishing">Vishing (Voice)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Mode</label>
+              <Select value={selectedChallengeType} onValueChange={setSelectedChallengeType}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(challengeTypes).map(([k, v]) => (
+                    <SelectItem key={k} value={k}>{v.icon} {v.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Difficulty</label>
+              <Select value={difficulty} onValueChange={setDifficulty}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="novice">Novice</SelectItem>
+                  <SelectItem value="intermediate">Intermediate</SelectItem>
+                  <SelectItem value="expert">Expert</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Language</label>
+              <Select value={language} onValueChange={setLanguage}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="english">English</SelectItem>
+                  <SelectItem value="indonesian">Bahasa Indonesia</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Provider</label>
+              <Select value={selectedProvider} onValueChange={setSelectedProvider}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="gemini">Google Gemini (Free/Pro)</SelectItem>
+                  <SelectItem value="claude">Anthropic Claude</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Button
+              size="lg"
+              className="w-full relative overflow-hidden group"
+              onClick={generateChallenge}
+              disabled={generating}
+            >
+              {generating ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Crafting Scenario...</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Zap className="w-4 h-4 group-hover:text-yellow-300 transition-colors" />
+                  <span>Start Simulation</span>
+                </div>
+              )}
+            </Button>
+
+            {generateError && (
+              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded text-sm text-red-500 flex gap-2 items-center">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                {generateError}
+              </div>
+            )}
+          </Card>
+        </div>
+
+        {/* Right: Info */}
+        <div className="w-full md:w-2/3">
+          <div className="grid md:grid-cols-2 gap-4 mb-8">
+            {Object.entries(challengeTypes).map(([key, info]) => (
+              <Card
+                key={key}
+                className={`p-5 cursor-pointer transition-all border-l-4 ${selectedChallengeType === key ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-transparent hover:bg-muted/50'}`}
+                onClick={() => setSelectedChallengeType(key)}
+              >
+                <div className="text-3xl mb-3">{info.icon}</div>
+                <h3 className="font-bold text-lg mb-1">{info.label}</h3>
+                <p className="text-sm text-muted-foreground">{info.description}</p>
+              </Card>
+            ))}
+          </div>
+
+          <Card className="p-6 bg-gradient-to-br from-background to-muted border-none">
+            <h3 className="font-bold mb-4 flex items-center gap-2">
+              <BookOpen className="w-5 h-5 text-primary" />
+              Mission Briefing
+            </h3>
+            <ul className="space-y-3">
+              {challengeTypes[selectedChallengeType].instructions.map((inst, i) => (
+                <li key={i} className="flex gap-3 text-sm">
+                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary font-bold text-xs shrink-0">
+                    {i + 1}
+                  </span>
+                  <span className="pt-0.5">{inst}</span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        </div>
+
+      </div>
+    </div>
+  );
 }
+
+// Temporary ScrollArea component if not available in UI lib
+const ScrollArea = ({ children, className }) => (
+  <div className={`overflow-y-auto ${className}`}>{children}</div>
+);

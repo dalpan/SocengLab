@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "Soceng Lab",
+    "title": "Pretexta",
     "tagline": "Simulator Rekayasa Sosial Adaptif"
   },
   "auth": {
@@ -21,7 +21,7 @@
     "about": "Tentang"
   },
   "dashboard": {
-    "welcome": "Selamat datang di Soceng Lab",
+    "welcome": "Selamat datang di Pretexta",
     "recent_simulations": "Simulasi Terbaru",
     "quick_actions": "Aksi Cepat",
     "start_simulation": "Mulai Simulasi",
@@ -111,13 +111,11 @@
     "key_revoked": "Kunci API dicabut",
     "general": "Umum",
     "sidebar_title": "Bantuan & Petunjuk",
-    
     "general_title": "Pengaturan Umum",
     "language_instruction_bold": "Pilihan Bahasa",
     "language_instruction": "Mengubah bahasa antarmuka secara instan. Pengaturan ini akan disimpan untuk kunjungan berikutnya.",
     "reduce_motion_instruction_bold": "Kurangi Gerakan",
     "reduce_motion_instruction": "Menonaktifkan animasi visual tertentu untuk pengalaman yang kurang mengganggu.",
-    
     "llm_config_title": "Konfigurasi LLM",
     "api_key_note_bold": "Keamanan Kunci API",
     "api_key_note": "Kunci API Anda disimpan dengan aman di database backend. Kunci akan di-mask setelah disimpan dan tidak akan pernah ditampilkan.",
@@ -137,7 +135,7 @@
     "consent_required": "Saya mengerti dan menyetujui untuk berpartisipasi dalam simulasi pelatihan ini.",
     "i_agree": "SAYA SETUJU",
     "setup_complete": "Pengaturan Selesai",
-    "launch_app": "Luncurkan Soceng Lab",
+    "launch_app": "Luncurkan Pretexta",
     "default_credentials": "Kredensial default"
   },
   "simulation": {
@@ -178,5 +176,30 @@
     "status": "Status",
     "running": "berjalan",
     "completed": "selesai"
+  },
+  "glossary": {
+    "title": "Glosarium",
+    "tagline": "Glosarium Istilah",
+    "llm_not_configured": "LLM Belum Dikonfigurasi",
+    "llm_config_message": "Anda perlu mengonfigurasi kunci API LLM untuk menggunakan glosarium AI",
+    "go_to_settings": "Buka Pengaturan",
+    "generate_challenge": "Berikan Challenge Soal",
+    "ai_generate_description": "AI akan generate soal pilihan ganda tentang social engineering",
+    "mode_selection": "Simulasi Mode",
+    "mode_quiz": "Quiz",
+    "mode_quiz_desc": "Pertanyaan Pilihan Ganda",
+    "mode_conversation": "Percakapan",
+    "mode_conversation_desc": "Percakapan Interaktif",
+    "mode_scenario": "Skenario",
+    "mode_scenario_desc": "Skenario Berbasis Cerita",
+    "category": "Kategori Tantangan",
+    "num_questions": "Jumlah Soal",
+    "difficulty": "Tingkat Kesulitan",
+    "questions_count": "soal",
+    "generate_button": "Generate {count} Soal",
+    "generating": "Menghasilkan {count} soal...",
+    "quiz_completed": "Quiz Selesai!",
+    "generate_new": "Buat Quiz Baru",
+    "retake": "Ulangi Quiz"
   }
 }
