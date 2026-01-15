@@ -27,15 +27,15 @@ Rather than teaching how to exploit people, Pretexta focuses on **pretexting, co
 
 ---
 
-## ✨ Features
+## Features
 
-- **🗣️ Real-Time AI Chat**: Interact with dynamic AI personas (e.g., "The Urgent CEO", "Angry IT Support") powered by **Groq (Llama 3)**, Gemini, or Claude.
-- **🧠 Adaptive Psychology**: Scenarios are built on Cialdini's 6 Principles of Influence (Reciprocity, Scarcity, Authority, etc.).
-- **⚡ Interactive AI Lab**: A WhatsApp-style chat interface where you must defend against active pretexting attempts.
-- **📊 Win/Loss Detection**: The AI automatically detects if you've been compromised (shared credentials, clicked links) or successfully defended the asset.
-- **📝 Mission Logs**: Detailed history of your simulations with scoring and analysis.
-- **🛡️ Quiz Mode**: Assess your theoretical knowledge of social engineering tactics.
-- **🌐 Bilingual Support**: Full support for English and Indonesian (Bahasa Indonesia).
+- **Real-Time AI Chat**: Interact with dynamic AI personas (e.g., "The Urgent CEO", "Angry IT Support") powered by **Groq (Llama 3)**, Gemini, or Claude.
+- **Adaptive Psychology**: Scenarios are built on Cialdini's 6 Principles of Influence (Reciprocity, Scarcity, Authority, etc.).
+- **Interactive AI Lab**: A WhatsApp-style chat interface where you must defend against active pretexting attempts.
+- **Win/Loss Detection**: The AI automatically detects if you've been compromised (shared credentials, clicked links) or successfully defended the asset.
+- **Mission Logs**: Detailed history of your simulations with scoring and analysis.
+- **Quiz Mode**: Assess your theoretical knowledge of social engineering tactics.
+- **Bilingual Support**: Full support for English and Indonesian (Bahasa Indonesia).
 
 ---
 
