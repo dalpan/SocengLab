@@ -68,7 +68,7 @@ export default function DashboardPage() {
           <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent mb-2">
             {t('dashboard.welcome')}
           </h1>
-          <p className="text-muted-foreground font-medium text-lg">Defend the Human OS</p>
+          <p className="text-muted-foreground font-medium text-lg">The Psychology Behind Successful Attacks</p>
         </div>
         <div className="flex gap-2">
           <Link to="/ai-challenge">
